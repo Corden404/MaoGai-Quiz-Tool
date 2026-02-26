@@ -37,3 +37,5 @@ export_questions_only_md.py
 
 # AI
 GEMINI.md
+# Local config (contains keys)
+config.js
