@@ -369,7 +369,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
         const LOCAL_STORAGE_KEY = 'maogai_progress_v1';
 
@@ -511,11 +511,83 @@
                 const stats = ref({ correct: 0, wrong: 0 });
                 const attempts = ref({});
 
+                let syncTimeout = null;
                 const saveProgress = () => {
+                    // 1. 本地存储 (永远最快响应)
                     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+                    
+                    // 2. 云端同步 (如果有账号登录，加入防抖推送到云端)
+                    if (currentUser.value && supabaseClient) {
+                        clearTimeout(syncTimeout);
+                        syncTimeout = setTimeout(async () => {
+                            try {
+                                const { error } = await supabaseClient
+                                    .from('user_progress')
+                                    .upsert({ 
+                                        user_id: currentUser.value.id, 
+                                        progress_data: userProgress.value,
+                                        updated_at: new Date().toISOString()
+                                    }, { onConflict: 'user_id' }); // 使用 user_id 作为冲突主键
+                                if (error) console.error('云端同步失败:', error);
+                                else console.log('☁️ 进度已同步至云端');
+                            } catch (e) {
+                                console.error('云端同步异常:', e);
+                            }
+                        }, 1500); // 1.5秒防抖，避免频繁打字发请求
+                    }
                 };
 
-                // --- 2. 初始化 ---
+                // --- 2. 初始化与数据合并 ---
+                const mergeProgressToQuestions = () => {
+                    if (!allQuestions.value.length) return;
+                    
+                    // 每次合并前，先清理一遍遗留数据（防止切换账号时看到上个账号的数据）
+                    allQuestions.value.forEach(q => {
+                        delete q.error_count;
+                        delete q.note;
+                        delete q.tag_star;
+                        delete q.tag_key;
+                        delete q.tag_hard;
+                        
+                        // 重新注入当前 progress 的数据
+                        if (userProgress.value.tags && userProgress.value.tags[q.id]) {
+                            Object.assign(q, userProgress.value.tags[q.id]);
+                        }
+                        if (userProgress.value.error_counts && userProgress.value.error_counts[q.id] !== undefined) {
+                            q.error_count = userProgress.value.error_counts[q.id];
+                        }
+                        if (userProgress.value.notes && userProgress.value.notes[q.id] !== undefined) {
+                            q.note = userProgress.value.notes[q.id];
+                        }
+                    });
+                };
+
+                // 监听登录状态变化，一登录就去拉取云端数据
+                watch(currentUser, async (newUser) => {
+                    if (newUser && supabaseClient) {
+                        try {
+                            const { data, error } = await supabaseClient
+                                .from('user_progress')
+                                .select('progress_data')
+                                .eq('user_id', newUser.id)
+                                .single(); // 确保只查自己那条
+                            
+                            if (data && data.progress_data) {
+                                // 拿到了云端数据，覆盖本地并刷新视图
+                                userProgress.value = data.progress_data;
+                                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+                                mergeProgressToQuestions();
+                                console.log('✅ 成功拉取并应用云端进度');
+                            }
+                        } catch (err) {
+                            // PGRST116 是单行查询没有结果的正常报错（即新用户还没存过数据）
+                            if (err.code !== 'PGRST116') { 
+                                console.error('获取云端数据失败:', err);
+                            }
+                        }
+                    }
+                });
+
                 onMounted(() => {
                     try {
                         const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -528,20 +600,8 @@
                         return;
                     }
 
-                    // 合并进度到题库
-                    data.forEach(q => {
-                        if (userProgress.value.tags[q.id]) {
-                            Object.assign(q, userProgress.value.tags[q.id]);
-                        }
-                        if (userProgress.value.error_counts[q.id] !== undefined) {
-                            q.error_count = userProgress.value.error_counts[q.id];
-                        }
-                        if (userProgress.value.notes[q.id] !== undefined) {
-                            q.note = userProgress.value.notes[q.id];
-                        }
-                    });
-
                     allQuestions.value = data;
+                    mergeProgressToQuestions(); // 初始化合并一次本地数据
 
                     const chaptersSet = new Set(data.map(q => q.chapter || '未知章节'));
                     const typesSet = new Set(data.map(q => q.type || '未知题型'));
