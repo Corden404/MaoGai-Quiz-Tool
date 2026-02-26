@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="./questions.js"></script>
     <style>
         .fade-enter-active,
         .fade-leave-active {
@@ -30,7 +31,6 @@
 
     <div id="app" class="max-w-3xl mx-auto p-4" v-cloak>
 
-        {% raw %}
         <!-- 1. 设置页面 (Setup Page) -->
         <div v-if="status === 'setup'" class="bg-white p-6 rounded-xl shadow-lg">
             <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">刷题配置</h1>
@@ -321,16 +321,20 @@
                 </button>
             </div>
         </div>
-        {% endraw %}
 
     </div>
 
     <script>
         const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
+        const LOCAL_STORAGE_KEY = 'maogai_progress_v1';
+
         createApp({
             setup() {
                 // --- 1. 状态变量 ---
+                const allQuestions = ref([]);
+                const userProgress = ref({ tags: {}, error_counts: {}, notes: {} });
+
                 const status = ref('setup');
                 const config = ref({ chapters: [], types: [] });
                 const queue = ref([]);
@@ -361,13 +365,55 @@
                 const stats = ref({ correct: 0, wrong: 0 });
                 const attempts = ref({});
 
+                const saveProgress = () => {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+                };
+
                 // --- 2. 初始化 ---
-                onMounted(async () => {
-                    const res = await fetch('/api/config');
-                    const data = await res.json();
-                    config.value = data;
-                    selectedChapters.value = [...data.chapters];
-                    if (data.types.length > 0) selectedTypes.value = [data.types[0]];
+                onMounted(() => {
+                    try {
+                        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+                        if (stored) userProgress.value = JSON.parse(stored);
+                    } catch (e) { console.error('Failed to load progress', e); }
+
+                    const data = window.QUESTIONS_DATA;
+                    if (!data) {
+                        alert("题库加载失败，请确保 questions.js 存在");
+                        return;
+                    }
+
+                    // 合并进度到题库
+                    data.forEach(q => {
+                        if (userProgress.value.tags[q.id]) {
+                            Object.assign(q, userProgress.value.tags[q.id]);
+                        }
+                        if (userProgress.value.error_counts[q.id] !== undefined) {
+                            q.error_count = userProgress.value.error_counts[q.id];
+                        }
+                        if (userProgress.value.notes[q.id] !== undefined) {
+                            q.note = userProgress.value.notes[q.id];
+                        }
+                    });
+
+                    allQuestions.value = data;
+
+                    const chaptersSet = new Set(data.map(q => q.chapter || '未知章节'));
+                    const typesSet = new Set(data.map(q => q.type || '未知题型'));
+                    
+                    const typeOrder = ['单项选择题', '多项选择题', '辨析题', '简答题', '材料分析题', '论述题'];
+                    const sortedTypes = Array.from(typesSet).sort((a, b) => {
+                        const ia = typeOrder.indexOf(a);
+                        const ib = typeOrder.indexOf(b);
+                        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+                    });
+
+                    config.value = {
+                        chapters: Array.from(chaptersSet).sort(),
+                        types: sortedTypes
+                    };
+
+                    selectedChapters.value = [...config.value.chapters];
+                    if (config.value.types.length > 0) selectedTypes.value = [config.value.types[0]];
                 });
 
                 // --- 3. 计算属性 ---
@@ -478,25 +524,37 @@
                     }
                 };
 
-                const startQuiz = async () => {
+                const startQuiz = () => {
                     const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
-                    const res = await fetch('/api/get_questions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chapters: selectedChapters.value,
-                            types: selectedTypes.value,
-                            mode: mode.value,
-                            count: randomCount.value,
-                            mistake_min_count: safeMistakeMinCount
-                        })
-                    });
-                    const data = await res.json();
-                    if (data.length === 0) {
+                    
+                    let filtered = allQuestions.value.filter(q => 
+                        selectedChapters.value.includes(q.chapter) && 
+                        selectedTypes.value.includes(q.type)
+                    );
+
+                    if (mode.value === 'mistake') {
+                        filtered = filtered.filter(q => (q.error_count || 0) >= safeMistakeMinCount);
+                        filtered.sort((a, b) => (b.error_count || 0) - (a.error_count || 0));
+                    } else if (['star', 'key', 'hard'].includes(mode.value)) {
+                        const tagMap = { 'star': 'tag_star', 'key': 'tag_key', 'hard': 'tag_hard' };
+                        const tagField = tagMap[mode.value];
+                        filtered = filtered.filter(q => !!q[tagField]);
+                    } else if (mode.value === 'random') {
+                        for (let i = filtered.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+                        }
+                        const count = Number(randomCount.value) || 20;
+                        if (count < filtered.length) {
+                            filtered = filtered.slice(0, count);
+                        }
+                    }
+
+                    if (filtered.length === 0) {
                         alert('没有找到符合条件的题目');
                         return;
                     }
-                    queue.value = data;
+                    queue.value = filtered;
                     currentIndex.value = 0;
                     stats.value = { correct: 0, wrong: 0 };
                     attempts.value = {};
@@ -693,53 +751,41 @@
                     return 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50';
                 };
 
-                const toggleTag = async (tagField) => {
+                const toggleTag = (tagField) => {
                     const q = currentQuestion.value;
                     if (!q || !q.id) return;
                     if (!['tag_star', 'tag_key', 'tag_hard'].includes(tagField)) return;
+                    
                     const newVal = !Boolean(q[tagField]);
                     q[tagField] = newVal;
-                    try {
-                        await fetch('/api/update_tags', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                id: q.id,
-                                tags: { [tagField]: newVal }
-                            })
-                        });
-                    } catch (e) {
-                        // 回滚
-                        q[tagField] = !newVal;
-                        alert('标签保存失败');
+                    
+                    if (!userProgress.value.tags[q.id]) userProgress.value.tags[q.id] = {};
+                    userProgress.value.tags[q.id][tagField] = newVal;
+                    saveProgress();
+                };
+
+                const reportError = (id, isWrong) => {
+                    if (!isWrong) return;
+                    const q = allQuestions.value.find(x => x.id === id);
+                    if (q) {
+                        q.error_count = (q.error_count || 0) + 1;
+                        userProgress.value.error_counts[id] = q.error_count;
+                        saveProgress();
                     }
                 };
 
-                const reportError = async (id, isWrong) => {
-                    await fetch('/api/update_error', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id, is_wrong: isWrong })
-                    });
-                };
-
-                const saveNote = async () => {
+                const saveNote = () => {
                     saveBtnText.value = '保存中...';
-                    try {
-                        await fetch('/api/update_note', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                id: currentQuestion.value.id,
-                                note: noteContent.value
-                            })
-                        });
-                        currentQuestion.value.note = noteContent.value;
+                    const q = currentQuestion.value;
+                    if (q) {
+                        q.note = noteContent.value;
+                        userProgress.value.notes[q.id] = noteContent.value;
+                        saveProgress();
+                        
                         saveBtnText.value = '✅ 已保存';
                         setTimeout(() => { saveBtnText.value = '保存笔记'; }, 2000);
-                    } catch (e) {
-                        alert('保存失败');
-                        saveBtnText.value = '保存笔记';
+                    } else {
+                        saveBtnText.value = '保存失败';
                     }
                 };
 
