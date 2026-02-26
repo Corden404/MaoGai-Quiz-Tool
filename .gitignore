@@ -1,0 +1,39 @@
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE/editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime/log/temp
+*.log
+*.tmp
+
+# Project generated backup/export files
+questions.json.bak_*
+questions_only.md
+材料/questions.json
+add_note_script.py
+add_tags_once.py
+export_questions_only_md.py
+材料/merge_questions_once.py
+
+# AI
+GEMINI.md

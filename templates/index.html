@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刷题助手</title>
+    <!-- 引入 Tailwind CSS (美化) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 min-h-screen font-sans">
+
+    <div id="app" class="max-w-3xl mx-auto p-4" v-cloak>
+
+        {% raw %}
+        <!-- 1. 设置页面 (Setup Page) -->
+        <div v-if="status === 'setup'" class="bg-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">刷题配置</h1>
+
+            <!-- 章节选择 -->
+            <div class="mb-4">
+                <h3 class="font-bold mb-2">选择章节</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="chap in config.chapters" :key="chap" @click="toggleSelection(selectedChapters, chap)"
+                        :class="selectedChapters.includes(chap) ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                        class="px-3 py-1 rounded-full text-sm transition">
+                        {{ chap }}
+                    </button>
+                </div>
+                <div class="mt-2 text-sm text-blue-500 cursor-pointer" @click="selectAllChapters">全选 / 反选</div>
+            </div>
+
+            <!-- 题型选择 -->
+            <div class="mb-4">
+                <h3 class="font-bold mb-2">选择题型</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="t in config.types" :key="t" @click="toggleSelection(selectedTypes, t)"
+                        :class="selectedTypes.includes(t) ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'"
+                        class="px-3 py-1 rounded-full text-sm transition">
+                        {{ t }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- 模式选择 -->
+            <div class="mb-6">
+                <h3 class="font-bold mb-2">刷题模式</h3>
+                <div class="flex gap-4">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" v-model="mode" value="sequence" class="text-blue-600">
+                        <span>顺序练习</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" v-model="mode" value="random" class="text-blue-600">
+                        <span>随机抽题</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" v-model="mode" value="mistake" class="text-blue-600">
+                        <span>只刷错题</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" v-model="mode" value="star" class="text-blue-600">
+                        <span>只刷星标</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" v-model="mode" value="key" class="text-blue-600">
+                        <span>只刷重点</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" v-model="mode" value="hard" class="text-blue-600">
+                        <span>只刷难记</span>
+                    </label>
+                </div>
+
+                <!-- 随机数量输入 -->
+                <div v-if="mode === 'random'" class="mt-3 flex items-center gap-2">
+                    <span>抽取数量:</span>
+                    <input type="number" v-model.number="randomCount" class="border rounded px-2 py-1 w-20 text-center">
+                </div>
+
+                <!-- 错题阈值输入 -->
+                <div v-if="mode === 'mistake'" class="mt-3 flex items-center gap-2">
+                    <span>只刷错题次数 ≥</span>
+                    <input type="number" min="1" v-model.number="mistakeMinCount"
+                        class="border rounded px-2 py-1 w-20 text-center">
+                    <span>次</span>
+                </div>
+            </div>
+
+            <button @click="startQuiz" :disabled="selectedChapters.length===0 || selectedTypes.length===0"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow transition disabled:bg-gray-400">
+                开始刷题
+            </button>
+        </div>
+
+        <!-- 2. 刷题页面 (Quiz Page) -->
+        <div v-if="status === 'quiz'" class="relative">
+            <!-- 顶部栏：进度与退出 -->
+            <div class="flex justify-between items-center mb-4">
+                <button @click="status='setup'" class="text-gray-500 hover:text-gray-800 text-sm">← 退出</button>
+                <div class="flex-1 mx-4">
+                    <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 transition-all duration-300"
+                            :style="{ width: progressPercent + '%' }"></div>
+                    </div>
+                    <div class="text-center text-xs text-gray-500 mt-1">
+                        进度: {{ currentIndex + 1 }} / {{ queue.length }}
+                        <span class="ml-2 text-green-600" v-if="stats.correct > 0">✓{{ stats.correct }}</span>
+                        <span class="ml-1 text-red-500" v-if="stats.wrong > 0">✗{{ stats.wrong }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 题目卡片 -->
+            <div class="bg-white p-6 rounded-xl shadow-lg min-h-[400px] flex flex-col">
+
+                <!-- 题目标签 -->
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex gap-2">
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{{ currentQuestion.chapter
+                            }}</span>
+                        <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">{{ currentQuestion.type
+                            }}</span>
+                    </div>
+
+                    <!-- 错误次数（点击显示） -->
+                    <div class="cursor-pointer select-none" @click="showErrorCount = !showErrorCount">
+                        <span v-if="!showErrorCount" class="text-gray-300 text-sm"> 查看错题数</span>
+                        <span v-else class="text-red-500 text-sm font-bold">历史错误: {{ currentQuestion.error_count }}
+                            次</span>
+                    </div>
+                </div>
+
+                <!-- 题目标签：星标/重点/难记 -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button @click="toggleTag('tag_star')" :class="tagButtonClass(currentQuestion.tag_star, 'star')"
+                        class="px-3 py-1 rounded-full text-sm font-bold border transition">
+                        ⭐ 星标
+                    </button>
+                    <button @click="toggleTag('tag_key')" :class="tagButtonClass(currentQuestion.tag_key, 'key')"
+                        class="px-3 py-1 rounded-full text-sm font-bold border transition">
+                        📌 重点
+                    </button>
+                    <button @click="toggleTag('tag_hard')" :class="tagButtonClass(currentQuestion.tag_hard, 'hard')"
+                        class="px-3 py-1 rounded-full text-sm font-bold border transition">
+                        🧠 难记
+                    </button>
+                </div>
+
+                <!-- 题目内容 -->
+                <div class="text-lg font-medium mb-6 whitespace-pre-wrap leading-relaxed">{{
+                    currentQuestion.question_content }}</div>
+
+                <!-- 交互区域 -->
+                <div class="flex-1">
+
+                    <!-- A. 客观题输入区 -->
+                    <div v-if="isObjective" class="space-y-3">
+                        
+                        <!-- 情景1：选择题 (显示 A-E) -->
+                        <div v-if="isChoice" class="grid grid-cols-2 gap-3">
+                            <button v-for="opt in ['A','B','C','D','E']" :key="opt" @click="selectOption(opt)"
+                                :class="getOptionClass(opt)"
+                                class="py-3 border-2 rounded-lg font-bold transition text-lg relative">
+                                {{ opt }}
+                                <span v-if="userSelection.includes(opt)" class="absolute right-2 top-2 text-xs">✓</span>
+                            </button>
+                        </div>
+
+                        <!-- 情景2：辨析/判断题 (显示 正确/错误) -->
+                        <div v-if="isJudgment" class="grid grid-cols-2 gap-4">
+                            <button v-for="opt in ['正确', '错误']" :key="opt" @click="selectOption(opt)"
+                                :class="getOptionClass(opt)"
+                                class="py-4 border-2 rounded-lg font-bold transition text-xl relative">
+                                {{ opt }}
+                                <span v-if="userSelection.includes(opt)" class="absolute right-2 top-2 text-xs">✓</span>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- B. 主观题输入区 (简答/论述) -->
+                    <div v-else>
+                        <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..."
+                            @input="autoResize"
+                            class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-300 outline-none resize-none overflow-hidden min-h-[100px]"></textarea>
+                    </div>
+                </div>
+
+                <!-- 📝 笔记功能区域 -->
+                <div class="mt-6 mb-2">
+                    <div @click="showNote = !showNote"
+                        class="cursor-pointer text-blue-500 hover:text-blue-700 text-sm flex items-center gap-1 select-none font-bold">
+                        <span>{{ showNote ? '▼' : '▶' }}</span>
+                        <span>📝 我的笔记 / AI 解析</span>
+                    </div>
+
+                    <div v-if="showNote"
+                        class="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 fade-enter-active">
+                        <textarea v-model="noteContent"
+                            class="w-full bg-transparent outline-none text-gray-700 text-sm min-h-[80px] resize-y"
+                            placeholder="这里可以记录笔记，或者通过AI生成的解析..."></textarea>
+                        <div class="flex justify-end mt-2">
+                            <button @click="saveNote"
+                                class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-3 py-1.5 rounded transition shadow">
+                                {{ saveBtnText }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交/下一题 按钮区 -->
+                <div class="mt-8 border-t pt-4">
+
+                    <!-- 阶段1: 未提交 -->
+                    <div v-if="!hasSubmitted">
+                        <button @click="submitAnswer"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                            {{ isObjective ? '提交答案' : '查看参考答案' }}
+                        </button>
+                    </div>
+
+                    <!-- 阶段2: 已提交 (显示结果与解析) -->
+                    <div v-else class="fade-enter-active">
+
+                        <!-- 结果反馈 -->
+                        <div class="p-4 rounded-lg mb-4" :class="resultClass">
+                            <div class="font-bold text-lg mb-1">{{ resultTitle }}</div>
+                            <div>
+                                <span class="font-bold">参考答案:</span>
+                                <span class="text-xl mx-2 font-mono">{{ currentQuestion.answer }}</span>
+                            </div>
+                        </div>
+
+                        <!-- 主观题自评按钮 -->
+                        <div v-if="!isObjective && subjectiveStatus === 'pending'" class="flex gap-4 mb-4">
+                            <button @click="markSubjective(true)"
+                                class="flex-1 bg-green-100 text-green-700 py-3 rounded-lg hover:bg-green-200 border border-green-300 font-bold">
+                                我答对了 (掌握)
+                            </button>
+                            <button @click="markSubjective(false)"
+                                class="flex-1 bg-red-100 text-red-700 py-3 rounded-lg hover:bg-red-200 border border-red-300 font-bold">
+                                我答错了 (加入错题)
+                            </button>
+                        </div>
+
+                        <!-- 下一题按钮 -->
+                        <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex gap-3">
+                            <button @click="prevQuestion" :disabled="currentIndex === 0"
+                                class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:hover:bg-gray-200">
+                                ← 上一题
+                            </button>
+                            <button @click="nextQuestion"
+                                class="flex-[2] bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 rounded-lg transition">
+                                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 结算页面 (Result Page) -->
+        <div v-if="status === 'result'" class="bg-white p-8 rounded-xl shadow-lg max-w-2xl mx-auto mt-10 text-center">
+            <h2 class="text-3xl font-bold mb-2 text-gray-800">🎉 练习完成!</h2>
+            <p class="text-gray-500 mb-8">本次练习统计报告</p>
+
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-3 gap-4 mb-8">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div class="text-blue-500 text-sm font-bold uppercase">总题数</div>
+                    <div class="text-4xl font-bold text-blue-700 mt-2">{{ queue.length }}</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <div class="text-green-500 text-sm font-bold uppercase">正确</div>
+                    <div class="text-4xl font-bold text-green-700 mt-2">{{ stats.correct }}</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                    <div class="text-red-500 text-sm font-bold uppercase">错误</div>
+                    <div class="text-4xl font-bold text-red-700 mt-2">{{ stats.wrong }}</div>
+                </div>
+            </div>
+
+            <!-- 正确率条 -->
+            <div class="mb-8">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>正确率</span>
+                    <span class="font-bold">{{ accuracy }}%</span>
+                </div>
+                <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-500" :style="{ width: accuracy + '%' }"></div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 justify-center">
+                <button @click="status='setup'"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold transition">
+                    返回首页
+                </button>
+                <button @click="restartQuiz"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition shadow">
+                    再刷一次
+                </button>
+            </div>
+        </div>
+        {% endraw %}
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // --- 1. 状态变量 ---
+                const status = ref('setup');
+                const config = ref({ chapters: [], types: [] });
+                const queue = ref([]);
+                const currentIndex = ref(0);
+
+                // 筛选设置
+                const selectedChapters = ref([]);
+                const selectedTypes = ref([]);
+                const mode = ref('sequence');
+                const randomCount = ref(20);
+                const mistakeMinCount = ref(1);
+
+                // 答题状态
+                const userSelection = ref([]);
+                const userInputText = ref('');
+                const hasSubmitted = ref(false);
+                const isCorrect = ref(false);
+                const subjectiveStatus = ref('pending');
+                const showErrorCount = ref(false);
+                const textarea = ref(null);
+
+                // 笔记相关
+                const showNote = ref(false);
+                const noteContent = ref('');
+                const saveBtnText = ref('保存笔记');
+
+                // 统计数据
+                const stats = ref({ correct: 0, wrong: 0 });
+                const attempts = ref({});
+
+                // --- 2. 初始化 ---
+                onMounted(async () => {
+                    const res = await fetch('/api/config');
+                    const data = await res.json();
+                    config.value = data;
+                    selectedChapters.value = [...data.chapters];
+                    if (data.types.length > 0) selectedTypes.value = [data.types[0]];
+                });
+
+                // --- 3. 计算属性 ---
+                const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
+
+                // 判断是否为纯选择题 (显示 A-E)
+                const isChoice = computed(() => {
+                    const t = currentQuestion.value.type;
+                    return t && t.includes('选择');
+                });
+
+                // 判断是否为辨析或判断题 (显示 正确/错误)
+                const isJudgment = computed(() => {
+                    const t = currentQuestion.value.type;
+                    return t && (t.includes('辨析') || t.includes('判断'));
+                });
+
+                // isObjective 保持为 true，用于控制显示按钮区还是文本框区
+                const isObjective = computed(() => {
+                    return isChoice.value || isJudgment.value;
+                });
+
+                const isMultiSelect = computed(() => {
+                    return currentQuestion.value.type && currentQuestion.value.type.includes('多项');
+                });
+
+                const progressPercent = computed(() => {
+                    if (queue.value.length === 0) return 0;
+                    return ((currentIndex.value + 1) / queue.value.length) * 100;
+                });
+
+                const resultClass = computed(() => {
+                    if (!isObjective.value) return 'bg-yellow-50 text-yellow-800 border border-yellow-200';
+                    return isCorrect.value
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200';
+                });
+
+                const resultTitle = computed(() => {
+                    if (!isObjective.value) return '请自我对照';
+                    return isCorrect.value ? '✅ 回答正确' : '❌ 回答错误';
+                });
+
+                const accuracy = computed(() => {
+                    const totalDone = stats.value.correct + stats.value.wrong;
+                    if (totalDone === 0) return 0;
+                    return ((stats.value.correct / totalDone) * 100).toFixed(1);
+                });
+
+                const normalizeText = (v) => {
+                    if (v === null || v === undefined) return '';
+                    return String(v).replace(/\uFEFF/g, '').trim();
+                };
+
+                const normalizeJudgmentToken = (token) => {
+                    if (!token) return null;
+                    if (token === '正确' || token === '对' || token === '√') return '正确';
+                    if (token === '错误' || token === '错' || token === '×' || token === '✗') return '错误';
+                    return null;
+                };
+
+                // 从答案文本中提取“正确/错误”，兼容："答：错误。..." / "错误" / "正确。..." / "对/错/√/×" 等
+                const parseJudgmentAnswer = (rawAnswer) => {
+                    const s = normalizeText(rawAnswer);
+                    if (!s) return null;
+
+                    // 强匹配：只在开头附近找结论，避免解析段落里出现“正确/错误”干扰
+                    const head = s.match(
+                        /^\s*(?:[“"'‘’\[\]（）()【】]|【[^】]*】)*\s*(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)\s*[：:\-－—]?\s*)?(正确|错误|对|错|√|×|✗)/
+                    );
+                    if (head) return normalizeJudgmentToken(head[1]);
+
+                    // 去空白后再试一次（处理“答： 错误 ...”这类）
+                    const compact = s.replace(/\s+/g, '');
+                    const compactHead = compact.match(
+                        /^(?:【[^】]*】)?(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)[：:\-－—]?)?(正确|错误|对|错|√|×|✗)/
+                    );
+                    if (compactHead) return normalizeJudgmentToken(compactHead[1]);
+
+                    // 弱匹配：仅在很短的前缀里找“正确/错误”
+                    const early = compact.slice(0, 12);
+                    const earlyHit = early.match(/正确|错误/);
+                    if (earlyHit) return earlyHit[0];
+
+                    // 兜底：只看第一句，取更靠前的那个
+                    const firstSentence = s.split(/[\r\n。.!?？；;]/)[0];
+                    const idxCorrect = firstSentence.indexOf('正确');
+                    const idxWrong = firstSentence.indexOf('错误');
+                    if (idxCorrect === -1 && idxWrong === -1) return null;
+                    if (idxCorrect !== -1 && idxWrong === -1) return '正确';
+                    if (idxWrong !== -1 && idxCorrect === -1) return '错误';
+                    return idxCorrect < idxWrong ? '正确' : '错误';
+                };
+
+                // --- 4. 方法 ---
+
+                const toggleSelection = (list, item) => {
+                    const idx = list.indexOf(item);
+                    if (idx > -1) list.splice(idx, 1);
+                    else list.push(item);
+                };
+
+                const selectAllChapters = () => {
+                    if (selectedChapters.value.length === config.value.chapters.length) {
+                        selectedChapters.value = [];
+                    } else {
+                        selectedChapters.value = [...config.value.chapters];
+                    }
+                };
+
+                const startQuiz = async () => {
+                    const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
+                    const res = await fetch('/api/get_questions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chapters: selectedChapters.value,
+                            types: selectedTypes.value,
+                            mode: mode.value,
+                            count: randomCount.value,
+                            mistake_min_count: safeMistakeMinCount
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.length === 0) {
+                        alert('没有找到符合条件的题目');
+                        return;
+                    }
+                    queue.value = data;
+                    currentIndex.value = 0;
+                    stats.value = { correct: 0, wrong: 0 };
+                    attempts.value = {};
+                    loadQuestionState();
+                    status.value = 'quiz';
+                };
+
+                const restartQuiz = () => {
+                    currentIndex.value = 0;
+                    stats.value = { correct: 0, wrong: 0 };
+                    attempts.value = {};
+                    loadQuestionState();
+                    status.value = 'quiz';
+                };
+
+                const computeGraded = () => {
+                    if (isObjective.value) return hasSubmitted.value;
+                    return hasSubmitted.value && subjectiveStatus.value !== 'pending';
+                };
+
+                const storeCurrentAttempt = () => {
+                    const q = currentQuestion.value;
+                    if (!q || !q.id) return;
+                    attempts.value[q.id] = {
+                        userSelection: Array.isArray(userSelection.value) ? [...userSelection.value] : [],
+                        userInputText: userInputText.value || '',
+                        hasSubmitted: !!hasSubmitted.value,
+                        isCorrect: !!isCorrect.value,
+                        subjectiveStatus: subjectiveStatus.value || 'pending',
+                        graded: computeGraded(),
+                    };
+                };
+
+                const resetQuestionState = () => {
+                    userSelection.value = [];
+                    userInputText.value = '';
+                    hasSubmitted.value = false;
+                    isCorrect.value = false;
+                    subjectiveStatus.value = 'pending';
+                    showErrorCount.value = false;
+                    showNote.value = false;
+                    noteContent.value = currentQuestion.value.note || '';
+                    saveBtnText.value = '保存笔记';
+                    nextTick(() => {
+                        if (textarea.value) textarea.value.style.height = 'auto';
+                    });
+                };
+
+                const loadQuestionState = () => {
+                    const q = currentQuestion.value;
+                    if (!q || !q.id) {
+                        resetQuestionState();
+                        return;
+                    }
+                    const attempt = attempts.value[q.id];
+                    if (!attempt) {
+                        resetQuestionState();
+                        return;
+                    }
+                    userSelection.value = Array.isArray(attempt.userSelection) ? [...attempt.userSelection] : [];
+                    userInputText.value = attempt.userInputText || '';
+                    hasSubmitted.value = !!attempt.hasSubmitted;
+                    isCorrect.value = !!attempt.isCorrect;
+                    subjectiveStatus.value = attempt.subjectiveStatus || 'pending';
+                    showErrorCount.value = false;
+                    showNote.value = false;
+                    noteContent.value = currentQuestion.value.note || '';
+                    saveBtnText.value = '保存笔记';
+                    nextTick(() => {
+                        if (textarea.value) textarea.value.style.height = 'auto';
+                    });
+                };
+
+                const autoResize = (e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                };
+
+                const selectOption = (opt) => {
+                    if (hasSubmitted.value) return;
+                    if (isMultiSelect.value) {
+                        const idx = userSelection.value.indexOf(opt);
+                        if (idx > -1) userSelection.value.splice(idx, 1);
+                        else userSelection.value.push(opt);
+                    } else {
+                        userSelection.value = [opt];
+                    }
+                };
+
+                // 修改 getOptionClass 以适应 "正确/错误" 按钮的样式
+                const getOptionClass = (opt) => {
+                    const isSelected = userSelection.value.includes(opt);
+                    
+                    // 提交后的样式逻辑
+                    if (hasSubmitted.value && isObjective.value) {
+                        // 获取标准答案的前两个字用于判断 (兼容 "正确" "错误" "A" "B" 等)
+                        const cleanAnswer = normalizeText(currentQuestion.value.answer);
+                        
+                        // 判断逻辑：
+                        // 1. 如果是选择题，看答案是否包含该选项字母
+                        // 2. 如果是辨析题，看答案字符串是否以该选项(正确/错误)开头
+                        let isStd = false;
+                        if (isChoice.value) {
+                            isStd = cleanAnswer.toUpperCase().includes(opt);
+                        } else if (isJudgment.value) {
+                            const std = parseJudgmentAnswer(cleanAnswer);
+                            // 比如 opt="错误", answer="答：错误。xxxx" -> 解析为“错误”
+                            isStd = std ? (std === opt) : cleanAnswer.startsWith(opt);
+                        }
+
+                        const isUser = isSelected;
+                        
+                        if (isStd) return 'bg-green-500 text-white border-green-600'; // 正确答案色
+                        if (isUser && !isStd) return 'bg-red-500 text-white border-red-600'; // 用户选错色
+                        return 'bg-gray-100 text-gray-400 opacity-50'; // 未选且非答案色
+                    }
+                    
+                    // 提交前的选中样式
+                    if (isSelected) return 'bg-blue-100 border-blue-500 text-blue-700';
+                    return 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
+                };
+
+                // 修改 submitAnswer 处理辨析题的判分逻辑
+                const submitAnswer = () => {
+                    if (isObjective.value && userSelection.value.length === 0) return;
+                    const qid = currentQuestion.value.id;
+                    const prev = qid ? attempts.value[qid] : null;
+                    if (prev && prev.graded) {
+                        // 已经判过分的题目不重复计分/不重复上报错题
+                        hasSubmitted.value = true;
+                        return;
+                    }
+                    hasSubmitted.value = true;
+
+                    if (isObjective.value) {
+                        if (isChoice.value) {
+                            // 原有的选择题逻辑
+                            const uAns = [...userSelection.value].sort().join('').toUpperCase();
+                            const sAns = currentQuestion.value.answer.replace(/[^A-Za-z]/g, '').toUpperCase().split('').sort().join('');
+                            isCorrect.value = (uAns === sAns);
+                        } else if (isJudgment.value) {
+                            // 新增：辨析题逻辑
+                            const uAns = userSelection.value[0]; // 用户选的 "正确" 或 "错误"
+                            const dbAns = normalizeText(currentQuestion.value.answer);
+                            const std = parseJudgmentAnswer(dbAns);
+                            
+                            // 优先用解析出的“正确/错误”判分；解析失败则回退到旧逻辑
+                            isCorrect.value = std ? (std === uAns) : dbAns.startsWith(uAns);
+                        }
+
+                        if (isCorrect.value) {
+                            stats.value.correct++;
+                        } else {
+                            stats.value.wrong++;
+                            reportError(currentQuestion.value.id, true);
+                        }
+
+                        if (qid) {
+                            storeCurrentAttempt();
+                            attempts.value[qid].graded = true;
+                        }
+                    }
+                };
+
+                const markSubjective = (correct) => {
+                    if (subjectiveStatus.value !== 'pending') return;
+
+                    const qid = currentQuestion.value.id;
+                    const prev = qid ? attempts.value[qid] : null;
+                    if (prev && prev.graded) return;
+
+                    subjectiveStatus.value = correct ? 'correct' : 'wrong';
+
+                    if (correct) {
+                        stats.value.correct++;
+                    } else {
+                        stats.value.wrong++;
+                        reportError(currentQuestion.value.id, true);
+                    }
+
+                    if (qid) {
+                        storeCurrentAttempt();
+                        attempts.value[qid].graded = true;
+                    }
+                };
+
+                const tagButtonClass = (enabled, kind) => {
+                    if (enabled) {
+                        if (kind === 'star') return 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200';
+                        if (kind === 'key') return 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200';
+                        if (kind === 'hard') return 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200';
+                        return 'bg-gray-100 text-gray-800 border-gray-300';
+                    }
+                    return 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50';
+                };
+
+                const toggleTag = async (tagField) => {
+                    const q = currentQuestion.value;
+                    if (!q || !q.id) return;
+                    if (!['tag_star', 'tag_key', 'tag_hard'].includes(tagField)) return;
+                    const newVal = !Boolean(q[tagField]);
+                    q[tagField] = newVal;
+                    try {
+                        await fetch('/api/update_tags', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: q.id,
+                                tags: { [tagField]: newVal }
+                            })
+                        });
+                    } catch (e) {
+                        // 回滚
+                        q[tagField] = !newVal;
+                        alert('标签保存失败');
+                    }
+                };
+
+                const reportError = async (id, isWrong) => {
+                    await fetch('/api/update_error', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id, is_wrong: isWrong })
+                    });
+                };
+
+                const saveNote = async () => {
+                    saveBtnText.value = '保存中...';
+                    try {
+                        await fetch('/api/update_note', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: currentQuestion.value.id,
+                                note: noteContent.value
+                            })
+                        });
+                        currentQuestion.value.note = noteContent.value;
+                        saveBtnText.value = '✅ 已保存';
+                        setTimeout(() => { saveBtnText.value = '保存笔记'; }, 2000);
+                    } catch (e) {
+                        alert('保存失败');
+                        saveBtnText.value = '保存笔记';
+                    }
+                };
+
+                const nextQuestion = () => {
+                    storeCurrentAttempt();
+                    if (currentIndex.value < queue.value.length - 1) {
+                        currentIndex.value++;
+                        loadQuestionState();
+                    } else {
+                        status.value = 'result';
+                    }
+                };
+
+                const prevQuestion = () => {
+                    storeCurrentAttempt();
+                    if (currentIndex.value > 0) {
+                        currentIndex.value--;
+                        loadQuestionState();
+                    }
+                };
+
+                return {
+                    status, config, queue, currentIndex,
+                    selectedChapters, selectedTypes, mode, randomCount,
+                    mistakeMinCount,
+                    currentQuestion, userSelection, userInputText, hasSubmitted, isCorrect,
+                    isChoice, isJudgment, isObjective, progressPercent, getOptionClass, selectOption, submitAnswer,
+                    toggleSelection, selectAllChapters, startQuiz, nextQuestion, prevQuestion, restartQuiz,
+                    showErrorCount, resultClass, resultTitle, autoResize, textarea,
+                    subjectiveStatus, markSubjective,
+                    showNote, noteContent, saveNote, saveBtnText,
+                    toggleTag, tagButtonClass,
+                    stats, accuracy
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
