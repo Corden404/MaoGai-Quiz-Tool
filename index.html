@@ -1,1105 +1,1193 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>刷题助手</title>
-    <!-- 引入 Tailwind CSS (美化) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-      };
-    </script>
-    <!-- 引入 Vue 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 引入配置文件与 Supabase SDK -->
-    <script src="./config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./questions.js"></script>
-    <style>
-      .fade-enter-active,
-      .fade-leave-active {
-        transition: opacity 0.3s;
-      }
 
-      .fade-enter-from,
-      .fade-leave-to {
-        opacity: 0;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>刷题助手</title>
+  <!-- 引入 Tailwind CSS (美化) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+    };
+  </script>
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- 引入配置文件与 Supabase SDK -->
+  <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./questions.js"></script>
+  <style>
+    .fade-enter-active,
+    .fade-leave-active {
+      transition: opacity 0.3s;
+    }
 
-      [v-cloak] {
-        display: none;
-      }
-    </style>
-  </head>
+    .fade-enter-from,
+    .fade-leave-to {
+      opacity: 0;
+    }
 
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen font-sans transition-colors duration-300">
-    <div id="app" class="max-w-3xl mx-auto p-4" v-cloak>
-      <!-- 全局加载指示器 (菊花圈) -->
-      <div
-        v-if="isGlobalLoading"
-        class="fixed inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-[100]"
-      >
-        <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-        <span class="text-gray-700 dark:text-gray-300 font-medium">加载数据中...</span>
-      </div>
+    [v-cloak] {
+      display: none;
+    }
 
-      <!-- 顶部导航栏 / 用户状态 -->
-      <div
-        class="flex flex-wrap gap-3 justify-between items-center mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm transition-colors duration-300"
-      >
-        <div class="font-bold text-lg text-blue-800 dark:text-blue-400">毛概刷题助手</div>
-        <div class="flex items-center gap-2 sm:gap-3">
-          <button @click="toggleDarkMode" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition" title="切换深色模式">
-            <span v-if="isDark">🌙</span>
-            <span v-else>☀️</span>
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 10px;
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #475569;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen font-sans transition-colors duration-300">
+  <div id="app" class="max-w-3xl mx-auto p-4" v-cloak>
+    <!-- 全局加载指示器 (菊花圈) -->
+    <div v-if="isGlobalLoading"
+      class="fixed inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-[100]">
+      <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+        viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+        </path>
+      </svg>
+      <span class="text-gray-700 dark:text-gray-300 font-medium">加载数据中...</span>
+    </div>
+
+    <!-- 顶部导航栏 / 用户状态 -->
+    <div
+      class="flex flex-wrap gap-3 justify-between items-center mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm transition-colors duration-300">
+      <div class="font-bold text-lg text-blue-800 dark:text-blue-400">毛概刷题助手</div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button @click="toggleDarkMode" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+          title="切换深色模式">
+          <span v-if="isDark">🌙</span>
+          <span v-else>☀️</span>
+        </button>
+        <template v-if="currentUser">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-right">
+            <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">欢迎, <strong>{{
+                currentUser?.email?.split('@')[0] || '用户' }}</strong></span>
+            <button @click="logout"
+              class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition font-bold whitespace-nowrap">
+              退出
+            </button>
+            <button @click="showAccountModal = true"
+              class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition font-bold whitespace-nowrap"
+              title="管理账号及数据">
+              账号管理
+            </button>
+          </div>
+        </template>
+        <template v-else>
+          <span class="text-sm text-gray-400 dark:text-gray-500 hidden sm:inline">本地离线模式</span>
+          <button @click="openAuthModal('login')"
+            class="text-sm bg-blue-600 dark:bg-blue-500 text-white px-3 sm:px-4 py-1.5 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition shadow font-bold whitespace-nowrap">
+            登录 / 注册
           </button>
-          <template v-if="currentUser">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-right">
-              <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300"
-                >欢迎, <strong>{{ currentUser?.email?.split('@')[0] || '用户' }}</strong></span
-              >
-              <button
-                @click="logout"
-                class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition font-bold whitespace-nowrap"
-              >
-                退出
-              </button>
-            </div>
-          </template>
-          <template v-else>
-            <span class="text-sm text-gray-400 dark:text-gray-500 hidden sm:inline">本地离线模式</span>
-            <button
-              @click="openAuthModal('login')"
-              class="text-sm bg-blue-600 dark:bg-blue-500 text-white px-3 sm:px-4 py-1.5 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition shadow font-bold whitespace-nowrap"
-            >
-              登录 / 注册
-            </button>
-          </template>
-        </div>
+        </template>
       </div>
+    </div>
 
-      <!-- 登录/注册弹窗 -->
-      <div v-if="showAuth" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-enter-active p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative transition-colors duration-300">
-          <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">{{ authMode === 'login' ? '账号登录' : '注册新账号' }}</h2>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1 font-bold">邮箱</label>
-              <input
-                type="email"
-                v-model="authForm.email"
-                class="w-full border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2.5 rounded-lg focus:border-blue-500 focus:ring-0 outline-none transition"
-                placeholder="输入邮箱地址"
-              />
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1 font-bold">密码 (至少6位)</label>
-              <input
-                type="password"
-                v-model="authForm.password"
-                @keyup.enter="handleAuth"
-                class="w-full border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2.5 rounded-lg focus:border-blue-500 focus:ring-0 outline-none transition"
-                placeholder="输入密码"
-              />
-            </div>
-            <div v-if="authError" class="text-red-500 dark:text-red-400 text-sm font-bold text-center bg-red-50 dark:bg-red-900/30 p-2 rounded">
-              {{ authError }}
-            </div>
-
-            <button
-              @click="handleAuth"
-              :disabled="authLoading"
-              class="w-full flex justify-center items-center gap-2 bg-blue-600 dark:bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:bg-blue-400 dark:disabled:bg-blue-800 mt-2 shadow-md"
-            >
-              <svg v-if="authLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              {{ authLoading ? '处理中...' : (authMode === 'login' ? '登 录' : '注 册') }}
-            </button>
-
-            <div
-              class="text-center text-sm text-blue-500 dark:text-blue-400 mt-4 cursor-pointer hover:underline"
-              @click="authMode = authMode === 'login' ? 'register' : 'login'"
-            >
-              {{ authMode === 'login' ? '没有账号？点击注册 ➔' : '← 已有账号？返回登录' }}
-            </div>
+    <!-- 登录/注册弹窗 -->
+    <div v-if="showAuth"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-enter-active p-4">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative transition-colors duration-300">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">{{ authMode === 'login' ?
+          '账号登录' : '注册新账号' }}</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1 font-bold">邮箱</label>
+            <input type="email" v-model="authForm.email"
+              class="w-full border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2.5 rounded-lg focus:border-blue-500 focus:ring-0 outline-none transition"
+              placeholder="输入邮箱地址" />
           </div>
-          <button
-            @click="showAuth = false"
-            class="absolute top-3 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold text-2xl transition"
-          >
-            &times;
+          <div>
+            <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1 font-bold">密码 (至少6位)</label>
+            <input type="password" v-model="authForm.password" @keyup.enter="handleAuth"
+              class="w-full border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2.5 rounded-lg focus:border-blue-500 focus:ring-0 outline-none transition"
+              placeholder="输入密码" />
+          </div>
+          <div v-if="authError"
+            class="text-red-500 dark:text-red-400 text-sm font-bold text-center bg-red-50 dark:bg-red-900/30 p-2 rounded">
+            {{ authError }}
+          </div>
+
+          <button @click="handleAuth" :disabled="authLoading"
+            class="w-full flex justify-center items-center gap-2 bg-blue-600 dark:bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:bg-blue-400 dark:disabled:bg-blue-800 mt-2 shadow-md">
+            <svg v-if="authLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+              fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+            {{ authLoading ? '处理中...' : (authMode === 'login' ? '登 录' : '注 册') }}
           </button>
-        </div>
-      </div>
 
-      <!-- 1. 设置页面 (Setup Page) -->
-      <div v-if="status === 'setup'" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg transition-colors duration-300">
-        <h1 class="text-2xl font-bold mb-6 text-center text-blue-600 dark:text-blue-400">刷题配置</h1>
-
-        <!-- 章节选择 -->
-        <div class="mb-4">
-          <h3 class="font-bold mb-2 dark:text-gray-200">选择章节</h3>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="chap in config.chapters"
-              :key="chap"
-              @click="toggleSelection(selectedChapters, chap)"
-              :class="selectedChapters.includes(chap) ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-              class="px-3 py-1 rounded-full text-sm transition hover:opacity-80"
-            >
-              {{ chap }}
-            </button>
-          </div>
-          <div class="mt-2 text-sm text-blue-500 dark:text-blue-400 cursor-pointer" @click="selectAllChapters">全选 / 反选</div>
-        </div>
-
-        <!-- 题型选择 -->
-        <div class="mb-4">
-          <h3 class="font-bold mb-2 dark:text-gray-200">选择题型</h3>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="t in config.types"
-              :key="t"
-              @click="toggleSelection(selectedTypes, t)"
-              :class="selectedTypes.includes(t) ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-              class="px-3 py-1 rounded-full text-sm transition hover:opacity-80"
-            >
-              {{ t }}
-            </button>
+          <div class="text-center text-sm text-blue-500 dark:text-blue-400 mt-4 cursor-pointer hover:underline"
+            @click="authMode = authMode === 'login' ? 'register' : 'login'">
+            {{ authMode === 'login' ? '没有账号？点击注册 ➔' : '← 已有账号？返回登录' }}
           </div>
         </div>
-
-        <!-- 模式选择 -->
-        <div class="mb-6">
-          <h3 class="font-bold mb-2 dark:text-gray-200">刷题模式</h3>
-          <div class="flex flex-wrap gap-4">
-            <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-              <input type="radio" v-model="mode" value="sequence" class="text-blue-600" />
-              <span>顺序练习</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-              <input type="radio" v-model="mode" value="random" class="text-blue-600" />
-              <span>随机抽题</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-              <input type="radio" v-model="mode" value="mistake" class="text-blue-600" />
-              <span>只刷错题</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-              <input type="radio" v-model="mode" value="star" class="text-blue-600" />
-              <span>只刷星标</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-              <input type="radio" v-model="mode" value="key" class="text-blue-600" />
-              <span>只刷重点</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-              <input type="radio" v-model="mode" value="hard" class="text-blue-600" />
-              <span>只刷难记</span>
-            </label>
-          </div>
-
-          <!-- 随机数量输入 -->
-          <div v-if="mode === 'random'" class="mt-3 flex items-center gap-2 dark:text-gray-300">
-            <span>抽取数量:</span>
-            <input
-              type="number"
-              v-model.number="randomCount"
-              class="border dark:border-gray-600 dark:bg-gray-700 rounded px-2 py-1 w-20 text-center outline-none"
-            />
-          </div>
-
-          <!-- 错题阈值输入 -->
-          <div v-if="mode === 'mistake'" class="mt-3 flex items-center gap-2 dark:text-gray-300">
-            <span>只刷错题次数 ≥</span>
-            <input
-              type="number"
-              min="1"
-              v-model.number="mistakeMinCount"
-              class="border dark:border-gray-600 dark:bg-gray-700 rounded px-2 py-1 w-20 text-center outline-none"
-            />
-            <span>次</span>
-          </div>
-        </div>
-
-        <button
-          @click="startQuiz"
-          :disabled="selectedChapters.length===0 || selectedTypes.length===0"
-          class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow transition disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-        >
-          开始刷题
+        <button @click="showAuth = false"
+          class="absolute top-3 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold text-2xl transition">
+          &times;
         </button>
       </div>
+    </div>
 
-      <!-- 2. 刷题页面 (Quiz Page) -->
-      <div v-if="status === 'quiz'" class="relative">
-        <!-- 顶部栏：进度与退出 -->
-        <div class="flex justify-between items-center mb-4">
-          <button @click="status='setup'" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm">
-            ← 退出
-          </button>
-          <div class="flex-1 mx-4">
-            <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div class="h-full bg-blue-500 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
+    <!-- 账号管理弹窗 -->
+    <div v-if="showAccountModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-enter-active p-4">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative transition-colors duration-300">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">账号管理</h2>
+
+        <div class="space-y-6">
+          <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">当前登录账号:</div>
+            <div class="font-bold text-gray-800 dark:text-gray-200">{{ currentUser?.email }}</div>
+          </div>
+
+          <div class="border-t border-red-100 dark:border-red-900/30 pt-6 mt-6">
+            <h3 class="text-lg font-bold text-red-600 dark:text-red-400 mb-2">危险区域 (Danger Zone)</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+              彻底注销您的账号。此操作将永久删除您的账号及所有云端进度、错题本和分享的公开笔记，数据无法恢复！</p>
+
+            <div v-if="!isDeletingAccount">
+              <button @click="startDeleteCountdown"
+                class="w-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 py-3 rounded-lg font-bold transition">
+                我要注销账号
+              </button>
             </div>
-            <div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
-              进度: {{ currentIndex + 1 }} / {{ queue.length }}
-              <span class="ml-2 text-green-600 dark:text-green-400" v-if="stats.correct > 0">✓{{ stats.correct }}</span>
-              <span class="ml-1 text-red-500 dark:text-red-400" v-if="stats.wrong > 0">✗{{ stats.wrong }}</span>
+            <div v-else
+              class="space-y-3 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-lg">
+              <div class="text-sm font-bold text-red-600 dark:text-red-400">请确认您的操作：</div>
+              <button @click="deleteAccount" :disabled="deleteCountdown > 0"
+                class="w-full text-white py-3 rounded-lg font-bold transition shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="deleteCountdown > 0 ? 'bg-red-300 dark:bg-red-800/50' : 'bg-red-600 hover:bg-red-700'">
+                {{ deleteCountdown > 0 ? `等待 ${deleteCountdown} 秒...` : '立即确认注销' }}
+              </button>
+              <button @click="cancelDelete"
+                class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 text-sm rounded-lg font-bold transition">
+                取消操作
+              </button>
             </div>
           </div>
         </div>
+        <button @click="showAccountModal = false; cancelDelete()"
+          class="absolute top-3 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold text-2xl transition">
+          &times;
+        </button>
+      </div>
+    </div>
 
-        <!-- 题目卡片 -->
-        <div class="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-xl shadow-lg min-h-[400px] flex flex-col transition-colors duration-300">
-          <!-- 题目标签 -->
-          <div class="flex justify-between items-start mb-4">
-            <div class="flex flex-wrap gap-2">
-              <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded"
-                >{{ currentQuestion.chapter }}</span
-              >
-              <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded"
-                >{{ currentQuestion.type }}</span
-              >
+    <!-- 1. 设置页面 (Setup Page) -->
+    <div v-if="status === 'setup'"
+      class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg transition-colors duration-300">
+      <h1 class="text-2xl font-bold mb-6 text-center text-blue-600 dark:text-blue-400">刷题配置</h1>
+
+      <!-- 章节选择 -->
+      <div class="mb-4">
+        <h3 class="font-bold mb-2 dark:text-gray-200">选择章节</h3>
+        <div class="flex flex-wrap gap-2">
+          <button v-for="chap in config.chapters" :key="chap" @click="toggleSelection(selectedChapters, chap)"
+            :class="selectedChapters.includes(chap) ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+            class="px-3 py-1 rounded-full text-sm transition hover:opacity-80">
+            {{ chap }}
+          </button>
+        </div>
+        <div class="mt-2 text-sm text-blue-500 dark:text-blue-400 cursor-pointer" @click="selectAllChapters">全选 / 反选
+        </div>
+      </div>
+
+      <!-- 题型选择 -->
+      <div class="mb-4">
+        <h3 class="font-bold mb-2 dark:text-gray-200">选择题型</h3>
+        <div class="flex flex-wrap gap-2">
+          <button v-for="t in config.types" :key="t" @click="toggleSelection(selectedTypes, t)"
+            :class="selectedTypes.includes(t) ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
+            class="px-3 py-1 rounded-full text-sm transition hover:opacity-80">
+            {{ t }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 模式选择 -->
+      <div class="mb-6">
+        <h3 class="font-bold mb-2 dark:text-gray-200">刷题模式</h3>
+        <div class="flex flex-wrap gap-4">
+          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
+            <input type="radio" v-model="mode" value="sequence" class="text-blue-600" />
+            <span>顺序练习</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
+            <input type="radio" v-model="mode" value="random" class="text-blue-600" />
+            <span>随机抽题</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
+            <input type="radio" v-model="mode" value="mistake" class="text-blue-600" />
+            <span>只刷错题</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
+            <input type="radio" v-model="mode" value="star" class="text-blue-600" />
+            <span>只刷星标</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
+            <input type="radio" v-model="mode" value="key" class="text-blue-600" />
+            <span>只刷重点</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
+            <input type="radio" v-model="mode" value="hard" class="text-blue-600" />
+            <span>只刷难记</span>
+          </label>
+        </div>
+
+        <!-- 随机数量输入 -->
+        <div v-if="mode === 'random'" class="mt-3 flex items-center gap-2 dark:text-gray-300">
+          <span>抽取数量:</span>
+          <input type="number" v-model.number="randomCount"
+            class="border dark:border-gray-600 dark:bg-gray-700 rounded px-2 py-1 w-20 text-center outline-none" />
+        </div>
+
+        <!-- 错题阈值输入 -->
+        <div v-if="mode === 'mistake'" class="mt-3 flex items-center gap-2 dark:text-gray-300">
+          <span>只刷错题次数 ≥</span>
+          <input type="number" min="1" v-model.number="mistakeMinCount"
+            class="border dark:border-gray-600 dark:bg-gray-700 rounded px-2 py-1 w-20 text-center outline-none" />
+          <span>次</span>
+        </div>
+      </div>
+
+      <button @click="startQuiz" :disabled="selectedChapters.length===0 || selectedTypes.length===0"
+        class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow transition disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed">
+        开始刷题
+      </button>
+    </div>
+
+    <!-- 2. 刷题页面 (Quiz Page) -->
+    <div v-if="status === 'quiz'" class="relative">
+      <!-- 顶部栏：进度与退出 -->
+      <div class="flex justify-between items-center mb-4">
+        <button @click="status='setup'"
+          class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm">
+          ← 退出
+        </button>
+        <div class="flex-1 mx-4">
+          <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div class="h-full bg-blue-500 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+          <div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+            进度: {{ currentIndex + 1 }} / {{ queue.length }}
+            <span class="ml-2 text-green-600 dark:text-green-400" v-if="stats.correct > 0">✓{{ stats.correct }}</span>
+            <span class="ml-1 text-red-500 dark:text-red-400" v-if="stats.wrong > 0">✗{{ stats.wrong }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 题目卡片 -->
+      <div
+        class="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-xl shadow-lg min-h-[400px] flex flex-col transition-colors duration-300">
+        <!-- 题目标签 -->
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex flex-wrap gap-2">
+            <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">{{
+              currentQuestion.chapter }}</span>
+            <span
+              class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded">{{
+              currentQuestion.type }}</span>
+          </div>
+
+          <!-- 错误次数（点击显示） -->
+          <div class="cursor-pointer select-none whitespace-nowrap ml-2" @click="showErrorCount = !showErrorCount">
+            <span v-if="!showErrorCount" class="text-gray-300 dark:text-gray-600 text-xs sm:text-sm"> 查看错题数</span>
+            <span v-else class="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold">历史错误: {{
+              currentQuestion.error_count }} 次</span>
+          </div>
+        </div>
+
+        <!-- 题目标签：星标/重点/难记 -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button @click="toggleTag('tag_star')" :class="tagButtonClass(currentQuestion.tag_star, 'star')"
+            class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition">
+            ⭐ 星标
+          </button>
+          <button @click="toggleTag('tag_key')" :class="tagButtonClass(currentQuestion.tag_key, 'key')"
+            class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition">
+            📌 重点
+          </button>
+          <button @click="toggleTag('tag_hard')" :class="tagButtonClass(currentQuestion.tag_hard, 'hard')"
+            class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition">
+            🧠 难记
+          </button>
+        </div>
+
+        <!-- 题目内容 -->
+        <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-gray-100">
+          {{ currentQuestion.question_content }}
+        </div>
+
+        <!-- 交互区域 -->
+        <div class="flex-1">
+          <!-- A. 客观题输入区 -->
+          <div v-if="isObjective" class="space-y-3">
+            <!-- 情景1：选择题 (显示 A-E) -->
+            <div v-if="isChoice" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button v-for="opt in ['A','B','C','D','E']" :key="opt" @click="selectOption(opt)"
+                :class="getOptionClass(opt)"
+                class="py-3 sm:py-4 border-2 rounded-lg font-bold transition text-lg relative">
+                {{ opt }}
+                <span v-if="userSelection.includes(opt)" class="absolute right-3 top-3 text-sm sm:text-base">✓</span>
+              </button>
             </div>
 
-            <!-- 错误次数（点击显示） -->
-            <div class="cursor-pointer select-none whitespace-nowrap ml-2" @click="showErrorCount = !showErrorCount">
-              <span v-if="!showErrorCount" class="text-gray-300 dark:text-gray-600 text-xs sm:text-sm"> 查看错题数</span>
-              <span v-else class="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold">历史错误: {{ currentQuestion.error_count }} 次</span>
+            <!-- 情景2：辨析/判断题 (显示 正确/错误) -->
+            <div v-if="isJudgment" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button v-for="opt in ['正确', '错误']" :key="opt" @click="selectOption(opt)" :class="getOptionClass(opt)"
+                class="py-4 border-2 rounded-lg font-bold transition text-lg sm:text-xl relative">
+                {{ opt }}
+                <span v-if="userSelection.includes(opt)" class="absolute right-3 top-3 text-sm sm:text-base">✓</span>
+              </button>
             </div>
           </div>
 
-          <!-- 题目标签：星标/重点/难记 -->
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button
-              @click="toggleTag('tag_star')"
-              :class="tagButtonClass(currentQuestion.tag_star, 'star')"
-              class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition"
-            >
-              ⭐ 星标
-            </button>
-            <button
-              @click="toggleTag('tag_key')"
-              :class="tagButtonClass(currentQuestion.tag_key, 'key')"
-              class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition"
-            >
-              📌 重点
-            </button>
-            <button
-              @click="toggleTag('tag_hard')"
-              :class="tagButtonClass(currentQuestion.tag_hard, 'hard')"
-              class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition"
-            >
-              🧠 难记
-            </button>
+          <!-- B. 主观题输入区 (简答/论述) -->
+          <div v-else>
+            <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..." @input="autoResize"
+              class="w-full p-3 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 outline-none resize-none overflow-hidden min-h-[100px] transition-colors"></textarea>
+          </div>
+        </div>
+
+        <!-- 📝 笔记功能区域 -->
+        <div class="mt-6 mb-2">
+          <div @click="toggleNoteArea"
+            class="cursor-pointer text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-1 select-none font-bold">
+            <span>{{ showNote ? '▼' : '▶' }}</span>
+            <span>📝 笔记与解题广场</span>
           </div>
 
-          <!-- 题目内容 -->
-          <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-gray-100">
-            {{ currentQuestion.question_content }}
-          </div>
-
-          <!-- 交互区域 -->
-          <div class="flex-1">
-            <!-- A. 客观题输入区 -->
-            <div v-if="isObjective" class="space-y-3">
-              <!-- 情景1：选择题 (显示 A-E) -->
-              <div v-if="isChoice" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  v-for="opt in ['A','B','C','D','E']"
-                  :key="opt"
-                  @click="selectOption(opt)"
-                  :class="getOptionClass(opt)"
-                  class="py-3 sm:py-4 border-2 rounded-lg font-bold transition text-lg relative"
-                >
-                  {{ opt }}
-                  <span v-if="userSelection.includes(opt)" class="absolute right-3 top-3 text-sm sm:text-base">✓</span>
-                </button>
-              </div>
-
-              <!-- 情景2：辨析/判断题 (显示 正确/错误) -->
-              <div v-if="isJudgment" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  v-for="opt in ['正确', '错误']"
-                  :key="opt"
-                  @click="selectOption(opt)"
-                  :class="getOptionClass(opt)"
-                  class="py-4 border-2 rounded-lg font-bold transition text-lg sm:text-xl relative"
-                >
-                  {{ opt }}
-                  <span v-if="userSelection.includes(opt)" class="absolute right-3 top-3 text-sm sm:text-base">✓</span>
-                </button>
-              </div>
+          <div v-if="showNote" class="mt-3 fade-enter-active">
+            <!-- 选项卡 -->
+            <div class="flex border-b dark:border-gray-700 mb-3">
+              <button @click="noteTab = 'private'"
+                :class="noteTab === 'private' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                class="pb-2 px-4 text-sm transition">
+                我的笔记
+              </button>
+              <button @click="noteTab = 'public'"
+                :class="noteTab === 'public' ? 'border-b-2 border-green-500 text-green-600 dark:text-green-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                class="pb-2 px-4 text-sm transition flex items-center gap-1">
+                解题广场
+                <span v-if="publicNotes.length"
+                  class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] px-1.5 py-0.5 rounded-full">{{
+                  publicNotes.length }}</span>
+              </button>
             </div>
 
-            <!-- B. 主观题输入区 (简答/论述) -->
-            <div v-else>
-              <textarea
-                ref="textarea"
-                v-model="userInputText"
-                placeholder="在此输入你的答案（非必填，主要用于自测记忆）..."
-                @input="autoResize"
-                class="w-full p-3 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 outline-none resize-none overflow-hidden min-h-[100px] transition-colors"
-              ></textarea>
-            </div>
-          </div>
-
-          <!-- 📝 笔记功能区域 -->
-          <div class="mt-6 mb-2">
-            <div
-              @click="showNote = !showNote"
-              class="cursor-pointer text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-1 select-none font-bold"
-            >
-              <span>{{ showNote ? '▼' : '▶' }}</span>
-              <span>📝 我的笔记 / AI 解析</span>
-            </div>
-
-            <div
-              v-if="showNote"
-              class="mt-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg p-3 fade-enter-active"
-            >
-              <textarea
-                v-model="noteContent"
+            <!-- 私人笔记区 -->
+            <div v-if="noteTab === 'private'"
+              class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg p-3">
+              <textarea v-model="noteContent"
                 class="w-full bg-transparent outline-none text-gray-700 dark:text-gray-300 text-sm min-h-[80px] resize-y"
-                placeholder="这里可以记录笔记，或者通过AI生成的解析..."
-              ></textarea>
-              <div class="flex justify-end mt-2">
-                <button
-                  @click="saveNote"
-                  class="bg-yellow-500 dark:bg-yellow-600 hover:bg-yellow-600 dark:hover:bg-yellow-700 text-white text-xs px-3 py-1.5 rounded transition shadow"
-                >
+                placeholder="这里可以记录私人笔记，或者通过AI生成的解析..."></textarea>
+              <div
+                class="flex justify-between items-center mt-2 border-t border-yellow-200/50 dark:border-yellow-700/30 pt-2">
+                <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <input type="checkbox" v-model="shareToPublic"
+                    class="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    :disabled="!currentUser" />
+                  <span :class="!currentUser ? 'opacity-50' : ''">分享到解题广场 (需登录)</span>
+                </label>
+                <button @click="saveNote"
+                  class="bg-yellow-500 dark:bg-yellow-600 hover:bg-yellow-600 dark:hover:bg-yellow-700 text-white text-xs px-3 py-1.5 rounded transition shadow">
                   {{ saveBtnText }}
                 </button>
               </div>
             </div>
+
+            <!-- 解题广场区 -->
+            <div v-if="noteTab === 'public'"
+              class="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3 min-h-[100px]">
+              <div v-if="isLoadingPublicNotes" class="h-full flex items-center justify-center py-4">
+                <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                  <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                  </svg>
+                  加载中...
+                </span>
+              </div>
+              <div v-else-if="!currentUser" class="h-full flex flex-col items-center justify-center py-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">登录后即可查看同学们的优质解析 🚀</p>
+                <button @click="openAuthModal('login')"
+                  class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition font-bold">点击登录</button>
+              </div>
+              <div v-else-if="publicNotes.length === 0" class="h-full flex items-center justify-center py-4">
+                <span class="text-sm text-gray-500 dark:text-gray-400">还没有人分享笔记，快来抢沙发吧！🛋️</span>
+              </div>
+              <div v-else class="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                <div v-for="pn in publicNotes" :key="pn.id"
+                  class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+                  <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <span
+                        class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[10px]">{{
+                        pn.user_email.charAt(0).toUpperCase() }}</span>
+                      {{ pn.user_email.split('@')[0] }}
+                    </span>
+                    <span class="text-[10px] text-gray-400">{{ new Date(pn.created_at).toLocaleDateString() }}</span>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{
+                    pn.content }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 提交/下一题 按钮区 -->
+        <div class="mt-8 border-t dark:border-gray-700 pt-4">
+          <!-- 阶段1: 未提交 -->
+          <div v-if="!hasSubmitted">
+            <button @click="submitAnswer"
+              class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow">
+              {{ isObjective ? '提交答案' : '查看参考答案' }}
+            </button>
           </div>
 
-          <!-- 提交/下一题 按钮区 -->
-          <div class="mt-8 border-t dark:border-gray-700 pt-4">
-            <!-- 阶段1: 未提交 -->
-            <div v-if="!hasSubmitted">
-              <button
-                @click="submitAnswer"
-                class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow"
-              >
-                {{ isObjective ? '提交答案' : '查看参考答案' }}
+          <!-- 阶段2: 已提交 (显示结果与解析) -->
+          <div v-else class="fade-enter-active">
+            <!-- 结果反馈 -->
+            <div class="p-4 rounded-lg mb-4" :class="resultClass">
+              <div class="font-bold text-lg mb-1">{{ resultTitle }}</div>
+              <div>
+                <span class="font-bold">参考答案:</span>
+                <span class="text-xl mx-2 font-mono">{{ currentQuestion.answer }}</span>
+              </div>
+            </div>
+
+            <!-- 主观题自评按钮 -->
+            <div v-if="!isObjective && subjectiveStatus === 'pending'"
+              class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
+              <button @click="markSubjective(true)"
+                class="flex-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 py-3 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/60 border border-green-300 dark:border-green-700 font-bold transition">
+                我答对了 (掌握)
+              </button>
+              <button @click="markSubjective(false)"
+                class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 border border-red-300 dark:border-red-700 font-bold transition">
+                我答错了 (加入错题)
               </button>
             </div>
 
-            <!-- 阶段2: 已提交 (显示结果与解析) -->
-            <div v-else class="fade-enter-active">
-              <!-- 结果反馈 -->
-              <div class="p-4 rounded-lg mb-4" :class="resultClass">
-                <div class="font-bold text-lg mb-1">{{ resultTitle }}</div>
-                <div>
-                  <span class="font-bold">参考答案:</span>
-                  <span class="text-xl mx-2 font-mono">{{ currentQuestion.answer }}</span>
-                </div>
-              </div>
-
-              <!-- 主观题自评按钮 -->
-              <div v-if="!isObjective && subjectiveStatus === 'pending'" class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
-                <button
-                  @click="markSubjective(true)"
-                  class="flex-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 py-3 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/60 border border-green-300 dark:border-green-700 font-bold transition"
-                >
-                  我答对了 (掌握)
-                </button>
-                <button
-                  @click="markSubjective(false)"
-                  class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 border border-red-300 dark:border-red-700 font-bold transition"
-                >
-                  我答错了 (加入错题)
-                </button>
-              </div>
-
-              <!-- 下一题按钮 -->
-              <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-col sm:flex-row gap-3">
-                <button
-                  @click="prevQuestion"
-                  :disabled="currentIndex === 0"
-                  class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ← 上一题
-                </button>
-                <button
-                  @click="nextQuestion"
-                  class="flex-[2] bg-gray-800 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition shadow"
-                >
-                  {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }}
-                </button>
-              </div>
+            <!-- 下一题按钮 -->
+            <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-col sm:flex-row gap-3">
+              <button @click="prevQuestion" :disabled="currentIndex === 0"
+                class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                ← 上一题
+              </button>
+              <button @click="nextQuestion"
+                class="flex-[2] bg-gray-800 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition shadow">
+                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 3. 结算页面 (Result Page) -->
-      <div
-        v-if="status === 'result'"
-        class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg max-w-2xl mx-auto mt-6 sm:mt-10 text-center transition-colors duration-300"
-      >
-        <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-gray-100">🎉 练习完成!</h2>
-        <p class="text-gray-500 dark:text-gray-400 mb-8">本次练习统计报告</p>
-
-        <!-- 统计卡片 -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
-            <div class="text-blue-500 dark:text-blue-400 text-sm font-bold uppercase">总题数</div>
-            <div class="text-4xl font-bold text-blue-700 dark:text-blue-300 mt-2">{{ queue.length }}</div>
-          </div>
-          <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800/50">
-            <div class="text-green-500 dark:text-green-400 text-sm font-bold uppercase">正确</div>
-            <div class="text-4xl font-bold text-green-700 dark:text-green-300 mt-2">{{ stats.correct }}</div>
-          </div>
-          <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
-            <div class="text-red-500 dark:text-red-400 text-sm font-bold uppercase">错误</div>
-            <div class="text-4xl font-bold text-red-700 dark:text-red-300 mt-2">{{ stats.wrong }}</div>
-          </div>
-        </div>
-
-        <!-- 正确率条 -->
-        <div class="mb-8">
-          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
-            <span>正确率</span>
-            <span class="font-bold">{{ accuracy }}%</span>
-          </div>
-          <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div class="h-full bg-green-500 dark:bg-green-400" :style="{ width: accuracy + '%' }"></div>
-          </div>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            @click="status='setup'"
-            class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-bold transition"
-          >
-            返回首页
-          </button>
-          <button
-            @click="restartQuiz"
-            class="bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-bold transition shadow"
-          >
-            再刷一次
-          </button>
         </div>
       </div>
     </div>
 
-    <script>
-      const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+    <!-- 3. 结算页面 (Result Page) -->
+    <div v-if="status === 'result'"
+      class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg max-w-2xl mx-auto mt-6 sm:mt-10 text-center transition-colors duration-300">
+      <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-gray-100">🎉 练习完成!</h2>
+      <p class="text-gray-500 dark:text-gray-400 mb-8">本次练习统计报告</p>
 
-      const LOCAL_STORAGE_KEY = "maogai_progress_v1";
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
+          <div class="text-blue-500 dark:text-blue-400 text-sm font-bold uppercase">总题数</div>
+          <div class="text-4xl font-bold text-blue-700 dark:text-blue-300 mt-2">{{ queue.length }}</div>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800/50">
+          <div class="text-green-500 dark:text-green-400 text-sm font-bold uppercase">正确</div>
+          <div class="text-4xl font-bold text-green-700 dark:text-green-300 mt-2">{{ stats.correct }}</div>
+        </div>
+        <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
+          <div class="text-red-500 dark:text-red-400 text-sm font-bold uppercase">错误</div>
+          <div class="text-4xl font-bold text-red-700 dark:text-red-300 mt-2">{{ stats.wrong }}</div>
+        </div>
+      </div>
 
-      // 临时添加：全局错误捕获，防止白屏死机且无报错提示
-      window.addEventListener("error", function (event) {
-        alert("JS 发生错误: " + event.message);
-      });
-      window.addEventListener("unhandledrejection", function (event) {
-        alert("未捕获的 Promise 异常: " + event.reason);
-      });
+      <!-- 正确率条 -->
+      <div class="mb-8">
+        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
+          <span>正确率</span>
+          <span class="font-bold">{{ accuracy }}%</span>
+        </div>
+        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div class="h-full bg-green-500 dark:bg-green-400" :style="{ width: accuracy + '%' }"></div>
+        </div>
+      </div>
 
-      // 初始化 Supabase 客户端
-      const supabaseUrl = window.APP_CONFIG?.SUPABASE_URL || "";
-      const supabaseKey = window.APP_CONFIG?.SUPABASE_KEY || "";
-      let supabaseClient = null;
-      if (supabaseUrl && supabaseKey) {
-        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-      }
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button @click="status='setup'"
+          class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-bold transition">
+          返回首页
+        </button>
+        <button @click="restartQuiz"
+          class="bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-bold transition shadow">
+          再刷一次
+        </button>
+      </div>
+    </div>
+  </div>
 
-      createApp({
-        setup() {
-          // --- 全局体验状态 ---
-          const isGlobalLoading = ref(true);
-          const isDark = ref(false);
+  <script>
+    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
-          const toggleDarkMode = () => {
-            isDark.value = !isDark.value;
-            if (isDark.value) {
-              document.documentElement.classList.add("dark");
-              localStorage.setItem("theme", "dark");
-            } else {
-              document.documentElement.classList.remove("dark");
-              localStorage.setItem("theme", "light");
+    const LOCAL_STORAGE_KEY = "maogai_progress_v1";
+
+    // 临时添加：全局错误捕获，防止白屏死机且无报错提示
+    window.addEventListener("error", function (event) {
+      alert("JS 发生错误: " + event.message);
+    });
+    window.addEventListener("unhandledrejection", function (event) {
+      alert("未捕获的 Promise 异常: " + event.reason);
+    });
+
+    // 初始化 Supabase 客户端
+    const supabaseUrl = window.APP_CONFIG?.SUPABASE_URL || "";
+    const supabaseKey = window.APP_CONFIG?.SUPABASE_KEY || "";
+    let supabaseClient = null;
+    if (supabaseUrl && supabaseKey) {
+      supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
+
+    createApp({
+      setup() {
+        // --- 全局体验状态 ---
+        const isGlobalLoading = ref(true);
+        const isDark = ref(false);
+
+        const toggleDarkMode = () => {
+          isDark.value = !isDark.value;
+          if (isDark.value) {
+            document.documentElement.classList.add("dark");
+            localStorage.setItem("theme", "dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("theme", "light");
+          }
+        };
+
+        // 初始化深色模式
+        onMounted(() => {
+          if (
+            localStorage.getItem("theme") === "dark" ||
+            (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+          ) {
+            isDark.value = true;
+            document.documentElement.classList.add("dark");
+          }
+        });
+
+        // --- 2. 初始化与数据合并 ---
+        const mergeProgressToQuestions = () => {
+          if (!allQuestions.value.length) return;
+
+          // 每次合并前，先清理一遍遗留数据（防止切换账号时看到上个账号的数据）
+          allQuestions.value.forEach((q) => {
+            delete q.error_count;
+            delete q.note;
+            delete q.tag_star;
+            delete q.tag_key;
+            delete q.tag_hard;
+
+            // 重新注入当前 progress 的数据
+            if (userProgress.value.tags && userProgress.value.tags[q.id]) {
+              Object.assign(q, userProgress.value.tags[q.id]);
             }
-          };
-
-          // 初始化深色模式
-          onMounted(() => {
-            if (
-              localStorage.getItem("theme") === "dark" ||
-              (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
-            ) {
-              isDark.value = true;
-              document.documentElement.classList.add("dark");
+            if (userProgress.value.error_counts && userProgress.value.error_counts[q.id] !== undefined) {
+              q.error_count = userProgress.value.error_counts[q.id];
+            }
+            if (userProgress.value.notes && userProgress.value.notes[q.id] !== undefined) {
+              q.note = userProgress.value.notes[q.id];
             }
           });
+        };
 
-          // --- 2. 初始化与数据合并 ---
-          const mergeProgressToQuestions = () => {
-            if (!allQuestions.value.length) return;
+        // --- 0. 账号与认证状态 ---
+        const currentUser = ref(null);
+        const showAuth = ref(false);
+        const authMode = ref("login"); // 'login' or 'register'
+        const authForm = ref({ email: "", password: "" });
+        const authError = ref("");
+        const authLoading = ref(false);
 
-            // 每次合并前，先清理一遍遗留数据（防止切换账号时看到上个账号的数据）
-            allQuestions.value.forEach((q) => {
-              delete q.error_count;
-              delete q.note;
-              delete q.tag_star;
-              delete q.tag_key;
-              delete q.tag_hard;
+        onMounted(async () => {
+          // 优先加载本地存储数据
+          try {
+            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (stored) userProgress.value = JSON.parse(stored);
+          } catch (e) {
+            console.error("Failed to load progress", e);
+          }
 
-              // 重新注入当前 progress 的数据
-              if (userProgress.value.tags && userProgress.value.tags[q.id]) {
-                Object.assign(q, userProgress.value.tags[q.id]);
-              }
-              if (userProgress.value.error_counts && userProgress.value.error_counts[q.id] !== undefined) {
-                q.error_count = userProgress.value.error_counts[q.id];
-              }
-              if (userProgress.value.notes && userProgress.value.notes[q.id] !== undefined) {
-                q.note = userProgress.value.notes[q.id];
-              }
-            });
-          };
-
-          // --- 0. 账号与认证状态 ---
-          const currentUser = ref(null);
-          const showAuth = ref(false);
-          const authMode = ref("login"); // 'login' or 'register'
-          const authForm = ref({ email: "", password: "" });
-          const authError = ref("");
-          const authLoading = ref(false);
-
-          onMounted(async () => {
-            // 优先加载本地存储数据
-            try {
-              const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-              if (stored) userProgress.value = JSON.parse(stored);
-            } catch (e) {
-              console.error("Failed to load progress", e);
-            }
-
-            const data = window.QUESTIONS_DATA;
-            if (!data) {
-              alert("题库加载失败，请确保 questions.js 存在");
-              isGlobalLoading.value = false;
-              return;
-            }
-
-            allQuestions.value = data;
-            mergeProgressToQuestions(); // 初始化合并一次本地数据
-
-            const chaptersSet = new Set(data.map((q) => q.chapter || "未知章节"));
-            const typesSet = new Set(data.map((q) => q.type || "未知题型"));
-
-            const typeOrder = ["单项选择题", "多项选择题", "辨析题", "简答题", "材料分析题", "论述题"];
-            const sortedTypes = Array.from(typesSet).sort((a, b) => {
-              const ia = typeOrder.indexOf(a);
-              const ib = typeOrder.indexOf(b);
-              return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-            });
-
-            config.value = {
-              chapters: Array.from(chaptersSet).sort(),
-              types: sortedTypes,
-            };
-
-            selectedChapters.value = [...config.value.chapters];
-            if (config.value.types.length > 0) selectedTypes.value = [config.value.types[0]];
-
-            // 初步渲染已经可以解除全局等待，提升体验感受
+          const data = window.QUESTIONS_DATA;
+          if (!data) {
+            alert("题库加载失败，请确保 questions.js 存在");
             isGlobalLoading.value = false;
+            return;
+          }
 
-            // 检查并恢复登录状态 (后台静默运行)
-            if (supabaseClient) {
-              // 初始化时获取当前 session
-              const {
-                data: { session },
-              } = await supabaseClient.auth.getSession();
-              if (session) {
-                currentUser.value = session.user;
-                // 注意：数据拉取在 watch(currentUser) 中进行
-              }
+          allQuestions.value = data;
+          mergeProgressToQuestions(); // 初始化合并一次本地数据
 
-              // 持续监听登录状态变化 (Token 刷新/退出等)
-              supabaseClient.auth.onAuthStateChange((_event, session) => {
-                currentUser.value = session ? session.user : null;
+          const chaptersSet = new Set(data.map((q) => q.chapter || "未知章节"));
+          const typesSet = new Set(data.map((q) => q.type || "未知题型"));
+
+          const typeOrder = ["单项选择题", "多项选择题", "辨析题", "简答题", "材料分析题", "论述题"];
+          const sortedTypes = Array.from(typesSet).sort((a, b) => {
+            const ia = typeOrder.indexOf(a);
+            const ib = typeOrder.indexOf(b);
+            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+          });
+
+          config.value = {
+            chapters: Array.from(chaptersSet).sort(),
+            types: sortedTypes,
+          };
+
+          selectedChapters.value = [...config.value.chapters];
+          if (config.value.types.length > 0) selectedTypes.value = [config.value.types[0]];
+
+          // 初步渲染已经可以解除全局等待，提升体验感受
+          isGlobalLoading.value = false;
+
+          // 检查并恢复登录状态 (后台静默运行)
+          if (supabaseClient) {
+            // 初始化时获取当前 session
+            const {
+              data: { session },
+            } = await supabaseClient.auth.getSession();
+            if (session) {
+              currentUser.value = session.user;
+              // 注意：数据拉取在 watch(currentUser) 中进行
+            }
+
+            // 持续监听登录状态变化 (Token 刷新/退出等)
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
+              currentUser.value = session ? session.user : null;
+            });
+          }
+        });
+        const openAuthModal = (mode) => {
+          if (!supabaseClient) {
+            alert("尚未配置 config.js 里的 Supabase 密钥，无法连接云端！");
+            return;
+          }
+          authMode.value = mode;
+          authError.value = "";
+          authForm.value = { email: "", password: "" };
+          showAuth.value = true;
+        };
+
+        const handleAuth = async () => {
+          if (!authForm.value.email || !authForm.value.password) {
+            authError.value = "邮箱和密码不能为空";
+            return;
+          }
+          if (authForm.value.password.length < 6) {
+            authError.value = "密码长度至少为 6 位";
+            return;
+          }
+
+          authLoading.value = true;
+          authError.value = "";
+
+          try {
+            if (authMode.value === "login") {
+              const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: authForm.value.email,
+                password: authForm.value.password,
               });
+              if (error) throw error;
+            } else {
+              const { data, error } = await supabaseClient.auth.signUp({
+                email: authForm.value.email,
+                password: authForm.value.password,
+              });
+              if (error) throw error;
+              alert("注册成功！系统已自动为您登录。");
             }
-          });
-          const openAuthModal = (mode) => {
-            if (!supabaseClient) {
-              alert("尚未配置 config.js 里的 Supabase 密钥，无法连接云端！");
-              return;
+            showAuth.value = false;
+          } catch (error) {
+            console.error("Auth error:", error);
+            // 提供人性化的中文错误提示
+            if (error.message.includes("Invalid login credentials")) {
+              authError.value = "邮箱或密码错误";
+            } else if (error.message.includes("already registered")) {
+              authError.value = "该邮箱已被注册，请直接登录";
+            } else {
+              authError.value = error.message || "操作失败，请重试";
             }
-            authMode.value = mode;
-            authError.value = "";
-            authForm.value = { email: "", password: "" };
-            showAuth.value = true;
-          };
+          } finally {
+            authLoading.value = false;
+          }
+        };
 
-          const handleAuth = async () => {
-            if (!authForm.value.email || !authForm.value.password) {
-              authError.value = "邮箱和密码不能为空";
-              return;
+        const logout = async () => {
+          if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+          }
+        };
+
+        const deleteAccount = async () => {
+          if (!currentUser.value || !supabaseClient) return;
+
+          try {
+            isGlobalLoading.value = true;
+            const { error } = await supabaseClient.rpc('delete_user');
+            if (error) throw error;
+
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            alert("账号已成功注销并清除所有数据。");
+            showAccountModal.value = false;
+            cancelDelete();
+            await logout();
+          } catch (err) {
+            console.error("注销账号失败:", err);
+            if (err.message && err.message.includes('schema cache')) {
+              alert("注销失败：数据库接口尚未就绪。\n\n解决方案：请回到 Supabase 的 SQL Editor 运行以下命令刷新缓存：\nNOTIFY pgrst, reload schema;");
+            } else {
+              alert("注销账号失败: " + (err.message || "未知错误"));
             }
-            if (authForm.value.password.length < 6) {
-              authError.value = "密码长度至少为 6 位";
-              return;
+          } finally {
+            isGlobalLoading.value = false;
+          }
+        };
+
+        const showAccountModal = ref(false);
+        const isDeletingAccount = ref(false);
+        const deleteCountdown = ref(5);
+        let countdownTimer = null;
+
+        const startDeleteCountdown = () => {
+          isDeletingAccount.value = true;
+          deleteCountdown.value = 5;
+          countdownTimer = setInterval(() => {
+            deleteCountdown.value--;
+            if (deleteCountdown.value <= 0) {
+              clearInterval(countdownTimer);
             }
+          }, 1000);
+        };
 
-            authLoading.value = true;
-            authError.value = "";
+        const cancelDelete = () => {
+          isDeletingAccount.value = false;
+          deleteCountdown.value = 5;
+          if (countdownTimer) clearInterval(countdownTimer);
+        };
 
-            try {
-              if (authMode.value === "login") {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                  email: authForm.value.email,
-                  password: authForm.value.password,
-                });
-                if (error) throw error;
-              } else {
-                const { data, error } = await supabaseClient.auth.signUp({
-                  email: authForm.value.email,
-                  password: authForm.value.password,
-                });
-                if (error) throw error;
-                alert("注册成功！系统已自动为您登录。");
-              }
-              showAuth.value = false;
-            } catch (error) {
-              console.error("Auth error:", error);
-              // 提供人性化的中文错误提示
-              if (error.message.includes("Invalid login credentials")) {
-                authError.value = "邮箱或密码错误";
-              } else if (error.message.includes("already registered")) {
-                authError.value = "该邮箱已被注册，请直接登录";
-              } else {
-                authError.value = error.message || "操作失败，请重试";
-              }
-            } finally {
-              authLoading.value = false;
-            }
-          };
+        // --- 1. 状态变量 ---
+        const allQuestions = ref([]);
+        const userProgress = ref({ tags: {}, error_counts: {}, notes: {} });
 
-          const logout = async () => {
-            if (supabaseClient) {
-              await supabaseClient.auth.signOut();
-            }
-          };
+        const status = ref("setup");
+        const config = ref({ chapters: [], types: [] });
+        const queue = ref([]);
+        const currentIndex = ref(0);
 
-          // --- 1. 状态变量 ---
-          const allQuestions = ref([]);
-          const userProgress = ref({ tags: {}, error_counts: {}, notes: {} });
+        // 筛选设置
+        const selectedChapters = ref([]);
+        const selectedTypes = ref([]);
+        const mode = ref("sequence");
+        const randomCount = ref(20);
+        const mistakeMinCount = ref(1);
 
-          const status = ref("setup");
-          const config = ref({ chapters: [], types: [] });
-          const queue = ref([]);
-          const currentIndex = ref(0);
+        // 答题状态
+        const userSelection = ref([]);
+        const userInputText = ref("");
+        const hasSubmitted = ref(false);
+        const isCorrect = ref(false);
+        const subjectiveStatus = ref("pending");
+        const showErrorCount = ref(false);
+        const textarea = ref(null);
 
-          // 筛选设置
-          const selectedChapters = ref([]);
-          const selectedTypes = ref([]);
-          const mode = ref("sequence");
-          const randomCount = ref(20);
-          const mistakeMinCount = ref(1);
+        // 笔记相关
+        const showNote = ref(false);
+        const noteContent = ref("");
+        const saveBtnText = ref("保存笔记");
+        const noteTab = ref('private');
+        const shareToPublic = ref(false);
+        const publicNotes = ref([]);
+        const isLoadingPublicNotes = ref(false);
 
-          // 答题状态
-          const userSelection = ref([]);
-          const userInputText = ref("");
-          const hasSubmitted = ref(false);
-          const isCorrect = ref(false);
-          const subjectiveStatus = ref("pending");
-          const showErrorCount = ref(false);
-          const textarea = ref(null);
+        // 统计数据
+        const stats = ref({ correct: 0, wrong: 0 });
+        const attempts = ref({});
 
-          // 笔记相关
-          const showNote = ref(false);
-          const noteContent = ref("");
-          const saveBtnText = ref("保存笔记");
+        let syncTimeout = null;
+        const saveProgress = () => {
+          // 1. 本地存储 (永远最快响应)
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
 
-          // 统计数据
-          const stats = ref({ correct: 0, wrong: 0 });
-          const attempts = ref({});
-
-          let syncTimeout = null;
-          const saveProgress = () => {
-            // 1. 本地存储 (永远最快响应)
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-
-            // 2. 云端同步 (如果有账号登录，加入防抖推送到云端)
-            if (currentUser.value && supabaseClient) {
-              clearTimeout(syncTimeout);
-              syncTimeout = setTimeout(async () => {
-                try {
-                  const { error } = await supabaseClient.from("user_progress").upsert(
-                    {
-                      user_id: currentUser.value.id,
-                      progress_data: userProgress.value,
-                      updated_at: new Date().toISOString(),
-                    },
-                    { onConflict: "user_id" },
-                  ); // 使用 user_id 作为冲突主键
-                  if (error) console.error("云端同步失败:", error);
-                  else console.log("☁️ 进度已同步至云端");
-                } catch (e) {
-                  console.error("云端同步异常:", e);
-                }
-              }, 1500); // 1.5秒防抖，避免频繁打字发请求
-            }
-          };
-
-          // 监听登录状态变化，一登录就去拉取云端数据
-          watch(currentUser, async (newUser) => {
-            if (newUser && supabaseClient) {
+          // 2. 云端同步 (如果有账号登录，加入防抖推送到云端)
+          if (currentUser.value && supabaseClient) {
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(async () => {
               try {
-                const { data, error } = await supabaseClient.from("user_progress").select("progress_data").eq("user_id", newUser.id).single(); // 确保只查自己那条
+                const { error } = await supabaseClient.from("user_progress").upsert(
+                  {
+                    user_id: currentUser.value.id,
+                    progress_data: userProgress.value,
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: "user_id" },
+                ); // 使用 user_id 作为冲突主键
+                if (error) console.error("云端同步失败:", error);
+                else console.log("☁️ 进度已同步至云端");
+              } catch (e) {
+                console.error("云端同步异常:", e);
+              }
+            }, 1500); // 1.5秒防抖，避免频繁打字发请求
+          }
+        };
 
-                if (data && data.progress_data) {
-                  // 拿到了云端数据，覆盖本地并刷新视图
-                  userProgress.value = data.progress_data;
-                  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-                  mergeProgressToQuestions();
-                  console.log("✅ 成功拉取并应用云端进度");
-                }
-              } catch (err) {
-                // PGRST116 是单行查询没有结果的正常报错（即新用户还没存过数据）
-                if (err.code !== "PGRST116") {
-                  console.error("获取云端数据失败:", err);
-                }
+        // 监听登录状态变化，一登录就去拉取云端数据
+        watch(currentUser, async (newUser) => {
+          if (newUser && supabaseClient) {
+            try {
+              const { data, error } = await supabaseClient.from("user_progress").select("progress_data").eq("user_id", newUser.id).single(); // 确保只查自己那条
+
+              if (data && data.progress_data) {
+                // 拿到了云端数据，覆盖本地并刷新视图
+                userProgress.value = data.progress_data;
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+                mergeProgressToQuestions();
+                console.log("✅ 成功拉取并应用云端进度");
+              }
+            } catch (err) {
+              // PGRST116 是单行查询没有结果的正常报错（即新用户还没存过数据）
+              if (err.code !== "PGRST116") {
+                console.error("获取云端数据失败:", err);
               }
             }
-          });
+          }
+        });
 
-          // --- 3. 计算属性 ---
-          const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
+        // --- 3. 计算属性 ---
+        const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
 
-          // 判断是否为纯选择题 (显示 A-E)
-          const isChoice = computed(() => {
-            const t = currentQuestion.value.type;
-            return t && t.includes("选择");
-          });
+        // 判断是否为纯选择题 (显示 A-E)
+        const isChoice = computed(() => {
+          const t = currentQuestion.value.type;
+          return t && t.includes("选择");
+        });
 
-          // 判断是否为辨析或判断题 (显示 正确/错误)
-          const isJudgment = computed(() => {
-            const t = currentQuestion.value.type;
-            return t && (t.includes("辨析") || t.includes("判断"));
-          });
+        // 判断是否为辨析或判断题 (显示 正确/错误)
+        const isJudgment = computed(() => {
+          const t = currentQuestion.value.type;
+          return t && (t.includes("辨析") || t.includes("判断"));
+        });
 
-          // isObjective 保持为 true，用于控制显示按钮区还是文本框区
-          const isObjective = computed(() => {
-            return isChoice.value || isJudgment.value;
-          });
+        // isObjective 保持为 true，用于控制显示按钮区还是文本框区
+        const isObjective = computed(() => {
+          return isChoice.value || isJudgment.value;
+        });
 
-          const isMultiSelect = computed(() => {
-            const t = currentQuestion.value.type;
-            return t && (t.includes("多项") || t.includes("不定项"));
-          });
+        const isMultiSelect = computed(() => {
+          const t = currentQuestion.value.type;
+          return t && (t.includes("多项") || t.includes("不定项"));
+        });
 
-          const progressPercent = computed(() => {
-            if (queue.value.length === 0) return 0;
-            return ((currentIndex.value + 1) / queue.value.length) * 100;
-          });
+        const progressPercent = computed(() => {
+          if (queue.value.length === 0) return 0;
+          return ((currentIndex.value + 1) / queue.value.length) * 100;
+        });
 
-          const resultClass = computed(() => {
-            if (!isObjective.value) return "bg-yellow-50 text-yellow-800 border border-yellow-200";
-            return isCorrect.value ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200";
-          });
+        const resultClass = computed(() => {
+          if (!isObjective.value) return "bg-yellow-50 text-yellow-800 border border-yellow-200";
+          return isCorrect.value ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200";
+        });
 
-          const resultTitle = computed(() => {
-            if (!isObjective.value) return "请自我对照";
-            return isCorrect.value ? "✅ 回答正确" : "❌ 回答错误";
-          });
+        const resultTitle = computed(() => {
+          if (!isObjective.value) return "请自我对照";
+          return isCorrect.value ? "✅ 回答正确" : "❌ 回答错误";
+        });
 
-          const accuracy = computed(() => {
-            const totalDone = stats.value.correct + stats.value.wrong;
-            if (totalDone === 0) return 0;
-            return ((stats.value.correct / totalDone) * 100).toFixed(1);
-          });
+        const accuracy = computed(() => {
+          const totalDone = stats.value.correct + stats.value.wrong;
+          if (totalDone === 0) return 0;
+          return ((stats.value.correct / totalDone) * 100).toFixed(1);
+        });
 
-          const normalizeText = (v) => {
-            if (v === null || v === undefined) return "";
-            return String(v)
-              .replace(/\uFEFF/g, "")
-              .trim();
-          };
+        const normalizeText = (v) => {
+          if (v === null || v === undefined) return "";
+          return String(v)
+            .replace(/\uFEFF/g, "")
+            .trim();
+        };
 
-          const normalizeJudgmentToken = (token) => {
-            if (!token) return null;
-            if (token === "正确" || token === "对" || token === "√") return "正确";
-            if (token === "错误" || token === "错" || token === "×" || token === "✗") return "错误";
-            return null;
-          };
+        const normalizeJudgmentToken = (token) => {
+          if (!token) return null;
+          if (token === "正确" || token === "对" || token === "√") return "正确";
+          if (token === "错误" || token === "错" || token === "×" || token === "✗") return "错误";
+          return null;
+        };
 
-          // 从答案文本中提取“正确/错误”，兼容："答：错误。..." / "错误" / "正确。..." / "对/错/√/×" 等
-          const parseJudgmentAnswer = (rawAnswer) => {
-            const s = normalizeText(rawAnswer);
-            if (!s) return null;
+        // 从答案文本中提取“正确/错误”，兼容："答：错误。..." / "错误" / "正确。..." / "对/错/√/×" 等
+        const parseJudgmentAnswer = (rawAnswer) => {
+          const s = normalizeText(rawAnswer);
+          if (!s) return null;
 
-            // 强匹配：只在开头附近找结论，避免解析段落里出现“正确/错误”干扰
-            const head = s.match(
-              /^\s*(?:[“"'‘’\[\]（）()【】]|【[^】]*】)*\s*(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)\s*[：:\-－—]?\s*)?(正确|错误|对|错|√|×|✗)/,
-            );
-            if (head) return normalizeJudgmentToken(head[1]);
+          // 强匹配：只在开头附近找结论，避免解析段落里出现“正确/错误”干扰
+          const head = s.match(
+            /^\s*(?:[“"'‘’\[\]（）()【】]|【[^】]*】)*\s*(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)\s*[：:\-－—]?\s*)?(正确|错误|对|错|√|×|✗)/,
+          );
+          if (head) return normalizeJudgmentToken(head[1]);
 
-            // 去空白后再试一次（处理“答： 错误 ...”这类）
-            const compact = s.replace(/\s+/g, "");
-            const compactHead = compact.match(/^(?:【[^】]*】)?(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)[：:\-－—]?)?(正确|错误|对|错|√|×|✗)/);
-            if (compactHead) return normalizeJudgmentToken(compactHead[1]);
+          // 去空白后再试一次（处理“答： 错误 ...”这类）
+          const compact = s.replace(/\s+/g, "");
+          const compactHead = compact.match(/^(?:【[^】]*】)?(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)[：:\-－—]?)?(正确|错误|对|错|√|×|✗)/);
+          if (compactHead) return normalizeJudgmentToken(compactHead[1]);
 
-            // 弱匹配：仅在很短的前缀里找“正确/错误”
-            const early = compact.slice(0, 12);
-            const earlyHit = early.match(/正确|错误/);
-            if (earlyHit) return earlyHit[0];
+          // 弱匹配：仅在很短的前缀里找“正确/错误”
+          const early = compact.slice(0, 12);
+          const earlyHit = early.match(/正确|错误/);
+          if (earlyHit) return earlyHit[0];
 
-            // 兜底：只看第一句，取更靠前的那个
-            const firstSentence = s.split(/[\r\n。.!?？；;]/)[0];
-            const idxCorrect = firstSentence.indexOf("正确");
-            const idxWrong = firstSentence.indexOf("错误");
-            if (idxCorrect === -1 && idxWrong === -1) return null;
-            if (idxCorrect !== -1 && idxWrong === -1) return "正确";
-            if (idxWrong !== -1 && idxCorrect === -1) return "错误";
-            return idxCorrect < idxWrong ? "正确" : "错误";
-          };
+          // 兜底：只看第一句，取更靠前的那个
+          const firstSentence = s.split(/[\r\n。.!?？；;]/)[0];
+          const idxCorrect = firstSentence.indexOf("正确");
+          const idxWrong = firstSentence.indexOf("错误");
+          if (idxCorrect === -1 && idxWrong === -1) return null;
+          if (idxCorrect !== -1 && idxWrong === -1) return "正确";
+          if (idxWrong !== -1 && idxCorrect === -1) return "错误";
+          return idxCorrect < idxWrong ? "正确" : "错误";
+        };
 
-          // --- 4. 方法 ---
+        // --- 4. 方法 ---
 
-          const toggleSelection = (list, item) => {
-            const idx = list.indexOf(item);
-            if (idx > -1) list.splice(idx, 1);
-            else list.push(item);
-          };
+        const toggleSelection = (list, item) => {
+          const idx = list.indexOf(item);
+          if (idx > -1) list.splice(idx, 1);
+          else list.push(item);
+        };
 
-          const selectAllChapters = () => {
-            if (selectedChapters.value.length === config.value.chapters.length) {
-              selectedChapters.value = [];
-            } else {
-              selectedChapters.value = [...config.value.chapters];
-            }
-          };
+        const selectAllChapters = () => {
+          if (selectedChapters.value.length === config.value.chapters.length) {
+            selectedChapters.value = [];
+          } else {
+            selectedChapters.value = [...config.value.chapters];
+          }
+        };
 
-          const startQuiz = () => {
-            const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
+        const startQuiz = () => {
+          const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
 
-            let filtered = allQuestions.value.filter((q) => selectedChapters.value.includes(q.chapter) && selectedTypes.value.includes(q.type));
+          let filtered = allQuestions.value.filter((q) => selectedChapters.value.includes(q.chapter) && selectedTypes.value.includes(q.type));
 
-            if (mode.value === "mistake") {
-              filtered = filtered.filter((q) => (q.error_count || 0) >= safeMistakeMinCount);
-              filtered.sort((a, b) => (b.error_count || 0) - (a.error_count || 0));
-            } else if (["star", "key", "hard"].includes(mode.value)) {
-              const tagMap = {
-                star: "tag_star",
-                key: "tag_key",
-                hard: "tag_hard",
-              };
-              const tagField = tagMap[mode.value];
-              filtered = filtered.filter((q) => !!q[tagField]);
-            } else if (mode.value === "random") {
-              for (let i = filtered.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
-              }
-              const count = Number(randomCount.value) || 20;
-              if (count < filtered.length) {
-                filtered = filtered.slice(0, count);
-              }
-            }
-
-            if (filtered.length === 0) {
-              alert("没有找到符合条件的题目");
-              return;
-            }
-            queue.value = filtered;
-            currentIndex.value = 0;
-            stats.value = { correct: 0, wrong: 0 };
-            attempts.value = {};
-            loadQuestionState();
-            status.value = "quiz";
-          };
-
-          const restartQuiz = () => {
-            startQuiz();
-          };
-
-          const computeGraded = () => {
-            if (isObjective.value) return hasSubmitted.value;
-            return hasSubmitted.value && subjectiveStatus.value !== "pending";
-          };
-
-          const storeCurrentAttempt = () => {
-            const q = currentQuestion.value;
-            if (!q || !q.id) return;
-            attempts.value[q.id] = {
-              userSelection: Array.isArray(userSelection.value) ? [...userSelection.value] : [],
-              userInputText: userInputText.value || "",
-              hasSubmitted: !!hasSubmitted.value,
-              isCorrect: !!isCorrect.value,
-              subjectiveStatus: subjectiveStatus.value || "pending",
-              graded: computeGraded(),
+          if (mode.value === "mistake") {
+            filtered = filtered.filter((q) => (q.error_count || 0) >= safeMistakeMinCount);
+            filtered.sort((a, b) => (b.error_count || 0) - (a.error_count || 0));
+          } else if (["star", "key", "hard"].includes(mode.value)) {
+            const tagMap = {
+              star: "tag_star",
+              key: "tag_key",
+              hard: "tag_hard",
             };
-          };
-
-          const resetQuestionState = () => {
-            userSelection.value = [];
-            userInputText.value = "";
-            hasSubmitted.value = false;
-            isCorrect.value = false;
-            subjectiveStatus.value = "pending";
-            showErrorCount.value = false;
-            showNote.value = false;
-            noteContent.value = currentQuestion.value.note || "";
-            saveBtnText.value = "保存笔记";
-            nextTick(() => {
-              if (textarea.value) textarea.value.style.height = "auto";
-            });
-          };
-
-          const loadQuestionState = () => {
-            const q = currentQuestion.value;
-            if (!q || !q.id) {
-              resetQuestionState();
-              return;
+            const tagField = tagMap[mode.value];
+            filtered = filtered.filter((q) => !!q[tagField]);
+          } else if (mode.value === "random") {
+            for (let i = filtered.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
             }
-            const attempt = attempts.value[q.id];
-            if (!attempt) {
-              resetQuestionState();
-              return;
+            const count = Number(randomCount.value) || 20;
+            if (count < filtered.length) {
+              filtered = filtered.slice(0, count);
             }
-            userSelection.value = Array.isArray(attempt.userSelection) ? [...attempt.userSelection] : [];
-            userInputText.value = attempt.userInputText || "";
-            hasSubmitted.value = !!attempt.hasSubmitted;
-            isCorrect.value = !!attempt.isCorrect;
-            subjectiveStatus.value = attempt.subjectiveStatus || "pending";
-            showErrorCount.value = false;
-            showNote.value = false;
-            noteContent.value = currentQuestion.value.note || "";
-            saveBtnText.value = "保存笔记";
-            nextTick(() => {
-              if (textarea.value) textarea.value.style.height = "auto";
-            });
-          };
+          }
 
-          const autoResize = (e) => {
-            e.target.style.height = "auto";
-            e.target.style.height = e.target.scrollHeight + "px";
-          };
+          if (filtered.length === 0) {
+            alert("没有找到符合条件的题目");
+            return;
+          }
+          queue.value = filtered;
+          currentIndex.value = 0;
+          stats.value = { correct: 0, wrong: 0 };
+          attempts.value = {};
+          loadQuestionState();
+          status.value = "quiz";
+        };
 
-          const selectOption = (opt) => {
-            if (hasSubmitted.value) return;
-            if (isMultiSelect.value) {
-              const idx = userSelection.value.indexOf(opt);
-              if (idx > -1) userSelection.value.splice(idx, 1);
-              else userSelection.value.push(opt);
-            } else {
-              userSelection.value = [opt];
+        const restartQuiz = () => {
+          startQuiz();
+        };
+
+        const computeGraded = () => {
+          if (isObjective.value) return hasSubmitted.value;
+          return hasSubmitted.value && subjectiveStatus.value !== "pending";
+        };
+
+        const storeCurrentAttempt = () => {
+          const q = currentQuestion.value;
+          if (!q || !q.id) return;
+          attempts.value[q.id] = {
+            userSelection: Array.isArray(userSelection.value) ? [...userSelection.value] : [],
+            userInputText: userInputText.value || "",
+            hasSubmitted: !!hasSubmitted.value,
+            isCorrect: !!isCorrect.value,
+            subjectiveStatus: subjectiveStatus.value || "pending",
+            graded: computeGraded(),
+          };
+        };
+
+        const resetQuestionState = () => {
+          userSelection.value = [];
+          userInputText.value = "";
+          hasSubmitted.value = false;
+          isCorrect.value = false;
+          subjectiveStatus.value = "pending";
+          showErrorCount.value = false;
+          showNote.value = false;
+          noteContent.value = currentQuestion.value.note || "";
+          saveBtnText.value = "保存笔记";
+          shareToPublic.value = false;
+          publicNotes.value = [];
+          nextTick(() => {
+            if (textarea.value) textarea.value.style.height = "auto";
+          });
+        };
+
+        const loadQuestionState = () => {
+          const q = currentQuestion.value;
+          if (!q || !q.id) {
+            resetQuestionState();
+            return;
+          }
+          const attempt = attempts.value[q.id];
+          if (!attempt) {
+            resetQuestionState();
+            return;
+          }
+          userSelection.value = Array.isArray(attempt.userSelection) ? [...attempt.userSelection] : [];
+          userInputText.value = attempt.userInputText || "";
+          hasSubmitted.value = !!attempt.hasSubmitted;
+          isCorrect.value = !!attempt.isCorrect;
+          subjectiveStatus.value = attempt.subjectiveStatus || "pending";
+          showErrorCount.value = false;
+          showNote.value = false;
+          noteContent.value = currentQuestion.value.note || "";
+          saveBtnText.value = "保存笔记";
+          shareToPublic.value = false;
+          publicNotes.value = [];
+          nextTick(() => {
+            if (textarea.value) textarea.value.style.height = "auto";
+          });
+        };
+
+        const autoResize = (e) => {
+          e.target.style.height = "auto";
+          e.target.style.height = e.target.scrollHeight + "px";
+        };
+
+        const selectOption = (opt) => {
+          if (hasSubmitted.value) return;
+          if (isMultiSelect.value) {
+            const idx = userSelection.value.indexOf(opt);
+            if (idx > -1) userSelection.value.splice(idx, 1);
+            else userSelection.value.push(opt);
+          } else {
+            userSelection.value = [opt];
+          }
+        };
+
+        // 修改 getOptionClass 以适应 "正确/错误" 按钮的样式
+        const getOptionClass = (opt) => {
+          const isSelected = userSelection.value.includes(opt);
+
+          // 提交后的样式逻辑
+          if (hasSubmitted.value && isObjective.value) {
+            // 获取标准答案的前两个字用于判断 (兼容 "正确" "错误" "A" "B" 等)
+            const cleanAnswer = normalizeText(currentQuestion.value.answer);
+
+            // 判断逻辑：
+            // 1. 如果是选择题，看答案是否包含该选项字母
+            // 2. 如果是辨析题，看答案字符串是否以该选项(正确/错误)开头
+            let isStd = false;
+            if (isChoice.value) {
+              const pureLetters = cleanAnswer.replace(/[^A-Za-z]/g, "").toUpperCase();
+              isStd = pureLetters.includes(opt);
+            } else if (isJudgment.value) {
+              const std = parseJudgmentAnswer(cleanAnswer);
+              // 比如 opt="错误", answer="答：错误。xxxx" -> 解析为“错误”
+              isStd = std ? std === opt : cleanAnswer.startsWith(opt);
             }
-          };
 
-          // 修改 getOptionClass 以适应 "正确/错误" 按钮的样式
-          const getOptionClass = (opt) => {
-            const isSelected = userSelection.value.includes(opt);
+            const isUser = isSelected;
 
-            // 提交后的样式逻辑
-            if (hasSubmitted.value && isObjective.value) {
-              // 获取标准答案的前两个字用于判断 (兼容 "正确" "错误" "A" "B" 等)
-              const cleanAnswer = normalizeText(currentQuestion.value.answer);
+            if (isStd) return "bg-green-500 text-white border-green-600"; // 正确答案色
+            if (isUser && !isStd) return "bg-red-500 text-white border-red-600"; // 用户选错色
+            return "bg-gray-100 text-gray-400 opacity-50"; // 未选且非答案色
+          }
 
-              // 判断逻辑：
-              // 1. 如果是选择题，看答案是否包含该选项字母
-              // 2. 如果是辨析题，看答案字符串是否以该选项(正确/错误)开头
-              let isStd = false;
-              if (isChoice.value) {
-                const pureLetters = cleanAnswer.replace(/[^A-Za-z]/g, "").toUpperCase();
-                isStd = pureLetters.includes(opt);
-              } else if (isJudgment.value) {
-                const std = parseJudgmentAnswer(cleanAnswer);
-                // 比如 opt="错误", answer="答：错误。xxxx" -> 解析为“错误”
-                isStd = std ? std === opt : cleanAnswer.startsWith(opt);
-              }
+          // 提交前的选中样式
+          if (isSelected) return "bg-blue-100 border-blue-500 text-blue-700";
+          return "bg-white border-gray-200 text-gray-600 hover:bg-gray-50";
+        };
 
-              const isUser = isSelected;
-
-              if (isStd) return "bg-green-500 text-white border-green-600"; // 正确答案色
-              if (isUser && !isStd) return "bg-red-500 text-white border-red-600"; // 用户选错色
-              return "bg-gray-100 text-gray-400 opacity-50"; // 未选且非答案色
-            }
-
-            // 提交前的选中样式
-            if (isSelected) return "bg-blue-100 border-blue-500 text-blue-700";
-            return "bg-white border-gray-200 text-gray-600 hover:bg-gray-50";
-          };
-
-          // 修改 submitAnswer 处理辨析题的判分逻辑
-          const submitAnswer = () => {
-            if (isObjective.value && userSelection.value.length === 0) return;
-            const qid = currentQuestion.value.id;
-            const prev = qid ? attempts.value[qid] : null;
-            if (prev && prev.graded) {
-              // 已经判过分的题目不重复计分/不重复上报错题
-              hasSubmitted.value = true;
-              return;
-            }
+        // 修改 submitAnswer 处理辨析题的判分逻辑
+        const submitAnswer = () => {
+          if (isObjective.value && userSelection.value.length === 0) return;
+          const qid = currentQuestion.value.id;
+          const prev = qid ? attempts.value[qid] : null;
+          if (prev && prev.graded) {
+            // 已经判过分的题目不重复计分/不重复上报错题
             hasSubmitted.value = true;
+            return;
+          }
+          hasSubmitted.value = true;
 
-            if (isObjective.value) {
-              if (isChoice.value) {
-                // 原有的选择题逻辑
-                const uAns = [...userSelection.value].sort().join("").toUpperCase();
-                const sAns = currentQuestion.value.answer
-                  .replace(/[^A-Za-z]/g, "")
-                  .toUpperCase()
-                  .split("")
-                  .sort()
-                  .join("");
-                isCorrect.value = uAns === sAns;
-              } else if (isJudgment.value) {
-                // 新增：辨析题逻辑
-                const uAns = userSelection.value[0]; // 用户选的 "正确" 或 "错误"
-                const dbAns = normalizeText(currentQuestion.value.answer);
-                const std = parseJudgmentAnswer(dbAns);
+          if (isObjective.value) {
+            if (isChoice.value) {
+              // 原有的选择题逻辑
+              const uAns = [...userSelection.value].sort().join("").toUpperCase();
+              const sAns = currentQuestion.value.answer
+                .replace(/[^A-Za-z]/g, "")
+                .toUpperCase()
+                .split("")
+                .sort()
+                .join("");
+              isCorrect.value = uAns === sAns;
+            } else if (isJudgment.value) {
+              // 新增：辨析题逻辑
+              const uAns = userSelection.value[0]; // 用户选的 "正确" 或 "错误"
+              const dbAns = normalizeText(currentQuestion.value.answer);
+              const std = parseJudgmentAnswer(dbAns);
 
-                // 优先用解析出的“正确/错误”判分；解析失败则回退到旧逻辑
-                isCorrect.value = std ? std === uAns : dbAns.startsWith(uAns);
-              }
-
-              if (isCorrect.value) {
-                stats.value.correct++;
-              } else {
-                stats.value.wrong++;
-                reportError(currentQuestion.value.id, true);
-              }
-
-              if (qid) {
-                storeCurrentAttempt();
-                attempts.value[qid].graded = true;
-              }
+              // 优先用解析出的“正确/错误”判分；解析失败则回退到旧逻辑
+              isCorrect.value = std ? std === uAns : dbAns.startsWith(uAns);
             }
-          };
 
-          const markSubjective = (correct) => {
-            if (subjectiveStatus.value !== "pending") return;
-
-            const qid = currentQuestion.value.id;
-            const prev = qid ? attempts.value[qid] : null;
-            if (prev && prev.graded) return;
-
-            subjectiveStatus.value = correct ? "correct" : "wrong";
-
-            if (correct) {
+            if (isCorrect.value) {
               stats.value.correct++;
             } else {
               stats.value.wrong++;
@@ -1110,138 +1198,239 @@
               storeCurrentAttempt();
               attempts.value[qid].graded = true;
             }
-          };
+          }
+        };
 
-          const tagButtonClass = (enabled, kind) => {
-            if (enabled) {
-              if (kind === "star") return "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200";
-              if (kind === "key") return "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200";
-              if (kind === "hard") return "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200";
-              return "bg-gray-100 text-gray-800 border-gray-300";
-            }
-            return "bg-white text-gray-500 border-gray-200 hover:bg-gray-50";
-          };
+        const markSubjective = (correct) => {
+          if (subjectiveStatus.value !== "pending") return;
 
-          const toggleTag = (tagField) => {
-            const q = currentQuestion.value;
-            if (!q || !q.id) return;
-            if (!["tag_star", "tag_key", "tag_hard"].includes(tagField)) return;
+          const qid = currentQuestion.value.id;
+          const prev = qid ? attempts.value[qid] : null;
+          if (prev && prev.graded) return;
 
-            const newVal = !Boolean(q[tagField]);
-            q[tagField] = newVal;
+          subjectiveStatus.value = correct ? "correct" : "wrong";
 
-            if (!userProgress.value.tags[q.id]) userProgress.value.tags[q.id] = {};
-            userProgress.value.tags[q.id][tagField] = newVal;
+          if (correct) {
+            stats.value.correct++;
+          } else {
+            stats.value.wrong++;
+            reportError(currentQuestion.value.id, true);
+          }
+
+          if (qid) {
+            storeCurrentAttempt();
+            attempts.value[qid].graded = true;
+          }
+        };
+
+        const tagButtonClass = (enabled, kind) => {
+          if (enabled) {
+            if (kind === "star") return "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200";
+            if (kind === "key") return "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200";
+            if (kind === "hard") return "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200";
+            return "bg-gray-100 text-gray-800 border-gray-300";
+          }
+          return "bg-white text-gray-500 border-gray-200 hover:bg-gray-50";
+        };
+
+        const toggleTag = (tagField) => {
+          const q = currentQuestion.value;
+          if (!q || !q.id) return;
+          if (!["tag_star", "tag_key", "tag_hard"].includes(tagField)) return;
+
+          const newVal = !Boolean(q[tagField]);
+          q[tagField] = newVal;
+
+          if (!userProgress.value.tags[q.id]) userProgress.value.tags[q.id] = {};
+          userProgress.value.tags[q.id][tagField] = newVal;
+          saveProgress();
+        };
+
+        const reportError = (id, isWrong) => {
+          if (!isWrong) return;
+          const q = allQuestions.value.find((x) => x.id === id);
+          if (q) {
+            q.error_count = (q.error_count || 0) + 1;
+            userProgress.value.error_counts[id] = q.error_count;
             saveProgress();
-          };
+          }
+        };
 
-          const reportError = (id, isWrong) => {
-            if (!isWrong) return;
-            const q = allQuestions.value.find((x) => x.id === id);
-            if (q) {
-              q.error_count = (q.error_count || 0) + 1;
-              userProgress.value.error_counts[id] = q.error_count;
-              saveProgress();
+        const saveNote = async () => {
+          saveBtnText.value = "保存中...";
+          const q = currentQuestion.value;
+          if (q) {
+            q.note = noteContent.value;
+            userProgress.value.notes[q.id] = noteContent.value;
+            saveProgress();
+
+            // 处理公开共享功能
+            if (shareToPublic.value && currentUser.value && supabaseClient) {
+              try {
+                // 查询是否已经分享过这条笔记
+                const { data: existing } = await supabaseClient
+                  .from('public_notes')
+                  .select('id')
+                  .eq('question_id', q.id)
+                  .eq('user_id', currentUser.value.id)
+                  .single();
+
+                if (existing) {
+                  await supabaseClient.from('public_notes').update({ content: noteContent.value }).eq('id', existing.id);
+                } else {
+                  await supabaseClient.from('public_notes').insert({
+                    question_id: q.id,
+                    user_id: currentUser.value.id,
+                    user_email: currentUser.value.email,
+                    content: noteContent.value
+                  });
+                }
+              } catch (err) {
+                if (err.code !== "PGRST116") {
+                  console.error("发布公开笔记失败:", err);
+                }
+              }
             }
-          };
 
-          const saveNote = () => {
-            saveBtnText.value = "保存中...";
-            const q = currentQuestion.value;
-            if (q) {
-              q.note = noteContent.value;
-              userProgress.value.notes[q.id] = noteContent.value;
-              saveProgress();
+            saveBtnText.value = "✅ 已保存";
+            setTimeout(() => {
+              saveBtnText.value = "保存笔记";
+            }, 2000);
+          } else {
+            saveBtnText.value = "保存失败";
+          }
+        };
 
-              saveBtnText.value = "✅ 已保存";
-              setTimeout(() => {
-                saveBtnText.value = "保存笔记";
-              }, 2000);
-            } else {
-              saveBtnText.value = "保存失败";
+        const fetchPublicNotes = async () => {
+          const q = currentQuestion.value;
+          if (!q || !q.id || !supabaseClient) return;
+
+          isLoadingPublicNotes.value = true;
+          try {
+            const { data, error } = await supabaseClient
+              .from('public_notes')
+              .select('*')
+              .eq('question_id', q.id)
+              .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            publicNotes.value = data || [];
+
+            // 看看自己有没有发过，如果有，勾选分享到解题广场
+            if (currentUser.value) {
+              const myShared = data.find(n => n.user_id === currentUser.value.id);
+              if (myShared) shareToPublic.value = true;
             }
-          };
+          } catch (err) {
+            console.error("加载公开笔记失败:", err);
+          } finally {
+            isLoadingPublicNotes.value = false;
+          }
+        };
 
-          const nextQuestion = () => {
-            storeCurrentAttempt();
-            if (currentIndex.value < queue.value.length - 1) {
-              currentIndex.value++;
-              loadQuestionState();
-            } else {
-              status.value = "result";
-            }
-          };
+        const toggleNoteArea = () => {
+          showNote.value = !showNote.value;
+          if (showNote.value && noteTab.value === 'public') {
+            fetchPublicNotes();
+          }
+        };
 
-          const prevQuestion = () => {
-            storeCurrentAttempt();
-            if (currentIndex.value > 0) {
-              currentIndex.value--;
-              loadQuestionState();
-            }
-          };
+        watch(noteTab, (newVal) => {
+          if (newVal === 'public') fetchPublicNotes();
+        });
 
-          return {
-            status,
-            config,
-            queue,
-            currentIndex,
-            selectedChapters,
-            selectedTypes,
-            mode,
-            randomCount,
-            mistakeMinCount,
-            currentQuestion,
-            userSelection,
-            userInputText,
-            hasSubmitted,
-            isCorrect,
-            isChoice,
-            isJudgment,
-            isObjective,
-            progressPercent,
-            getOptionClass,
-            selectOption,
-            submitAnswer,
-            toggleSelection,
-            selectAllChapters,
-            startQuiz,
-            nextQuestion,
-            prevQuestion,
-            restartQuiz,
-            showErrorCount,
-            resultClass,
-            resultTitle,
-            autoResize,
-            textarea,
-            subjectiveStatus,
-            markSubjective,
-            showNote,
-            noteContent,
-            saveNote,
-            saveBtnText,
-            toggleTag,
-            tagButtonClass,
-            stats,
-            accuracy,
+        const nextQuestion = () => {
+          storeCurrentAttempt();
+          if (currentIndex.value < queue.value.length - 1) {
+            currentIndex.value++;
+            loadQuestionState();
+          } else {
+            status.value = "result";
+          }
+        };
 
-            // 暴露体验相关的变量和方法
-            isGlobalLoading,
-            isDark,
-            toggleDarkMode,
+        const prevQuestion = () => {
+          storeCurrentAttempt();
+          if (currentIndex.value > 0) {
+            currentIndex.value--;
+            loadQuestionState();
+          }
+        };
 
-            // 暴露认证相关的变量和方法给模板
-            currentUser,
-            showAuth,
-            authMode,
-            authForm,
-            authError,
-            authLoading,
-            openAuthModal,
-            handleAuth,
-            logout,
-          };
-        },
-      }).mount("#app");
-    </script>
-  </body>
+        return {
+          status,
+          config,
+          queue,
+          currentIndex,
+          selectedChapters,
+          selectedTypes,
+          mode,
+          randomCount,
+          mistakeMinCount,
+          currentQuestion,
+          userSelection,
+          userInputText,
+          hasSubmitted,
+          isCorrect,
+          isChoice,
+          isJudgment,
+          isObjective,
+          progressPercent,
+          getOptionClass,
+          selectOption,
+          submitAnswer,
+          toggleSelection,
+          selectAllChapters,
+          startQuiz,
+          nextQuestion,
+          prevQuestion,
+          restartQuiz,
+          showErrorCount,
+          resultClass,
+          resultTitle,
+          autoResize,
+          textarea,
+          subjectiveStatus,
+          markSubjective,
+          showNote,
+          noteContent,
+          saveNote,
+          saveBtnText,
+          toggleTag,
+          noteTab,
+          shareToPublic,
+          publicNotes,
+          isLoadingPublicNotes,
+          toggleNoteArea,
+          deleteAccount,
+          showAccountModal,
+          isDeletingAccount,
+          deleteCountdown,
+          startDeleteCountdown,
+          cancelDelete,
+          tagButtonClass,
+          stats,
+          accuracy,
+
+          // 暴露体验相关的变量和方法
+          isGlobalLoading,
+          isDark,
+          toggleDarkMode,
+
+          // 暴露认证相关的变量和方法给模板
+          currentUser,
+          showAuth,
+          authMode,
+          authForm,
+          authError,
+          authLoading,
+          openAuthModal,
+          handleAuth,
+          logout,
+        };
+      },
+    }).mount("#app");
+  </script>
+</body>
+
 </html>
