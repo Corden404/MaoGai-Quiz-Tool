@@ -78,6 +78,15 @@
           <span v-if="isDark">🌙</span>
           <span v-else>☀️</span>
         </button>
+        <a href="https://github.com/Corden404/MaoGai-Quiz-Tool/" target="_blank"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300 flex items-center justify-center"
+          title="访问 GitHub 获取源码或提出建议">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd"
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+              clip-rule="evenodd"></path>
+          </svg>
+        </a>
         <template v-if="currentUser">
           <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-right">
             <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">欢迎, <strong>{{
@@ -347,13 +356,27 @@
         <div class="flex-1">
           <!-- A. 客观题输入区 -->
           <div v-if="isObjective" class="space-y-3">
-            <!-- 情景1：选择题 (显示 A-E) -->
+            <!-- 情景1：选择题 -->
             <div v-if="isChoice" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button v-for="opt in ['A','B','C','D','E']" :key="opt" @click="selectOption(opt)"
+              <!-- 渲染 ABCD 四项 -->
+              <button v-for="opt in ['A','B','C','D']" :key="opt" @click="selectOption(opt)"
                 :class="getOptionClass(opt)"
-                class="py-3 sm:py-4 border-2 rounded-lg font-bold transition text-lg relative">
+                class="py-2.5 sm:py-3 border-2 rounded-lg font-bold transition text-base sm:text-lg relative">
                 {{ opt }}
-                <span v-if="userSelection.includes(opt)" class="absolute right-3 top-3 text-sm sm:text-base">✓</span>
+                <span v-if="userSelection.includes(opt)"
+                  class="absolute right-3 top-2.5 sm:top-3 text-sm sm:text-base">✓</span>
+              </button>
+
+              <!-- 渲染 E 项 或 捷径按钮 -->
+              <button v-if="hasOptionE" @click="selectOption('E')" :class="getOptionClass('E')"
+                class="py-2.5 sm:py-3 border-2 rounded-lg font-bold transition text-base sm:text-lg relative">
+                E
+                <span v-if="userSelection.includes('E')"
+                  class="absolute right-3 top-2.5 sm:top-3 text-sm sm:text-base">✓</span>
+              </button>
+              <button v-else-if="!hasSubmitted" @click="giveUpAndShowAnswer"
+                class="py-2.5 sm:py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm sm:text-base flex items-center justify-center gap-1">
+                😵 不会，直接看解析
               </button>
             </div>
 
@@ -374,8 +397,55 @@
           </div>
         </div>
 
+        <!-- 🚀 提交/下一题 按钮区 (上移) -->
+        <div class="mt-8 mb-4">
+          <!-- 阶段1: 未提交 -->
+          <div v-if="!hasSubmitted">
+            <button @click="submitAnswer"
+              class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow">
+              {{ isObjective ? '提交答案' : '查看参考答案' }}
+            </button>
+          </div>
+
+          <!-- 阶段2: 已提交 (显示结果与解析) -->
+          <div v-else class="fade-enter-active">
+            <!-- 结果反馈 -->
+            <div class="p-4 rounded-lg mb-4" :class="resultClass">
+              <div class="font-bold text-lg mb-1">{{ resultTitle }}</div>
+              <div>
+                <span class="font-bold">参考答案:</span>
+                <span class="text-xl mx-2 font-mono">{{ currentQuestion.answer }}</span>
+              </div>
+            </div>
+
+            <!-- 主观题自评按钮 -->
+            <div v-if="!isObjective && subjectiveStatus === 'pending'"
+              class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
+              <button @click="markSubjective(true)"
+                class="flex-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 py-3 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/60 border border-green-300 dark:border-green-700 font-bold transition">
+                我答对了 (掌握)
+              </button>
+              <button @click="markSubjective(false)"
+                class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 border border-red-300 dark:border-red-700 font-bold transition">
+                我答错了 (加入错题)
+              </button>
+            </div>
+
+            <!-- 下一题按钮 -->
+            <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-col sm:flex-row gap-3">
+              <button @click="prevQuestion" :disabled="currentIndex === 0"
+                class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                ← 上一题
+              </button>
+              <button @click="nextQuestion"
+                class="flex-[2] bg-gray-800 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition shadow">
+                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 📝 笔记功能区域 -->
-        <div class="mt-6 mb-2">
+        <div class="mt-2 mb-2 border-t dark:border-gray-700 pt-4">
           <div @click="toggleNoteArea"
             class="cursor-pointer text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-1 select-none font-bold">
             <span>{{ showNote ? '▼' : '▶' }}</span>
@@ -444,7 +514,7 @@
                 <span class="text-sm text-gray-500 dark:text-gray-400">还没有人分享笔记，快来抢沙发吧！🛋️</span>
               </div>
               <div v-else class="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                <div v-for="pn in publicNotes" :key="pn.id"
+                <div v-for="(pn, index) in publicNotes" :key="pn.id" v-show="showAllNotes || index < 3"
                   class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
                   <div class="flex justify-between items-center mb-1.5">
                     <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -458,54 +528,15 @@
                   <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{
                     pn.content }}</div>
                 </div>
+
+                <!-- 展开/收起 按钮 -->
+                <div v-if="publicNotes.length > 3" class="text-center pt-1">
+                  <button @click="showAllNotes = !showAllNotes"
+                    class="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 font-bold transition">
+                    {{ showAllNotes ? '收起分享笔记 ▲' : `查看全部 ${publicNotes.length} 条笔记 ▼` }}
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 提交/下一题 按钮区 -->
-        <div class="mt-8 border-t dark:border-gray-700 pt-4">
-          <!-- 阶段1: 未提交 -->
-          <div v-if="!hasSubmitted">
-            <button @click="submitAnswer"
-              class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow">
-              {{ isObjective ? '提交答案' : '查看参考答案' }}
-            </button>
-          </div>
-
-          <!-- 阶段2: 已提交 (显示结果与解析) -->
-          <div v-else class="fade-enter-active">
-            <!-- 结果反馈 -->
-            <div class="p-4 rounded-lg mb-4" :class="resultClass">
-              <div class="font-bold text-lg mb-1">{{ resultTitle }}</div>
-              <div>
-                <span class="font-bold">参考答案:</span>
-                <span class="text-xl mx-2 font-mono">{{ currentQuestion.answer }}</span>
-              </div>
-            </div>
-
-            <!-- 主观题自评按钮 -->
-            <div v-if="!isObjective && subjectiveStatus === 'pending'"
-              class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
-              <button @click="markSubjective(true)"
-                class="flex-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 py-3 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/60 border border-green-300 dark:border-green-700 font-bold transition">
-                我答对了 (掌握)
-              </button>
-              <button @click="markSubjective(false)"
-                class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 border border-red-300 dark:border-red-700 font-bold transition">
-                我答错了 (加入错题)
-              </button>
-            </div>
-
-            <!-- 下一题按钮 -->
-            <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-col sm:flex-row gap-3">
-              <button @click="prevQuestion" :disabled="currentIndex === 0"
-                class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-                ← 上一题
-              </button>
-              <button @click="nextQuestion"
-                class="flex-[2] bg-gray-800 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition shadow">
-                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
             </div>
           </div>
         </div>
@@ -901,6 +932,13 @@
           return t && t.includes("选择");
         });
 
+        const hasOptionE = computed(() => {
+          if (!isChoice.value) return false;
+          // 如果答案里明确指出 E，则认为有 E 选项
+          const ans = currentQuestion.value?.answer || "";
+          return ans.includes("E") || ans.includes("e") || ans.includes("Ｅ") || ans.includes("ｅ");
+        });
+
         // 判断是否为辨析或判断题 (显示 正确/错误)
         const isJudgment = computed(() => {
           const t = currentQuestion.value.type;
@@ -1072,6 +1110,7 @@
           saveBtnText.value = "保存笔记";
           shareToPublic.value = false;
           publicNotes.value = [];
+          showAllNotes.value = false;
           nextTick(() => {
             if (textarea.value) textarea.value.style.height = "auto";
           });
@@ -1099,6 +1138,7 @@
           saveBtnText.value = "保存笔记";
           shareToPublic.value = false;
           publicNotes.value = [];
+          showAllNotes.value = false;
           nextTick(() => {
             if (textarea.value) textarea.value.style.height = "auto";
           });
@@ -1198,6 +1238,19 @@
               storeCurrentAttempt();
               attempts.value[qid].graded = true;
             }
+          }
+        };
+
+        const giveUpAndShowAnswer = () => {
+          if (hasSubmitted.value) return;
+          if (currentQuestion.value.id) {
+            stats.value.wrong++;
+            reportError(currentQuestion.value.id, true);
+            hasSubmitted.value = true;
+            isCorrect.value = false;
+
+            storeCurrentAttempt();
+            attempts.value[currentQuestion.value.id].graded = true;
           }
         };
 
@@ -1301,6 +1354,8 @@
           }
         };
 
+        const showAllNotes = ref(false);
+
         const fetchPublicNotes = async () => {
           const q = currentQuestion.value;
           if (!q || !q.id || !supabaseClient) return;
@@ -1375,6 +1430,8 @@
           isChoice,
           isJudgment,
           isObjective,
+          hasOptionE,
+          giveUpAndShowAnswer,
           progressPercent,
           getOptionClass,
           selectOption,
@@ -1400,6 +1457,7 @@
           noteTab,
           shareToPublic,
           publicNotes,
+          showAllNotes,
           isLoadingPublicNotes,
           toggleNoteArea,
           deleteAccount,
