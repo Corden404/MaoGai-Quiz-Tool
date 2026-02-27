@@ -62,5 +62,5 @@
 
 3. **完成配置**
    - 部署完成后，分配给你一个公网域名。
-   - 返回 **Supabase 控制台** -> `Authentication` -> `URL Configuration`。把这个公网域名（如 `https://my-quiz.pages.dev`）填写到 **Site URL** 和 **Redirect URLs** 中。
+   - 返回 **Supabase 控制台** -> `Authentication` -> `URL Configuration`。把这个公网域名填写到 **Site URL** 和 **Redirect URLs** 中。
 
