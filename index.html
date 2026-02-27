@@ -517,13 +517,28 @@
                 <div v-for="(pn, index) in publicNotes" :key="pn.id" v-show="showAllNotes || index < 3"
                   class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
                   <div class="flex justify-between items-center mb-1.5">
-                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                      <span
-                        class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[10px]">{{
-                        pn.user_email.charAt(0).toUpperCase() }}</span>
-                      {{ pn.user_email.split('@')[0] }}
-                    </span>
-                    <span class="text-[10px] text-gray-400">{{ new Date(pn.created_at).toLocaleDateString() }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <span
+                          class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[10px]">{{
+                          pn.user_email.charAt(0).toUpperCase() }}</span>
+                        {{ pn.user_email.split('@')[0] }}
+                      </span>
+                      <span class="text-[10px] text-gray-400">{{ new Date(pn.created_at).toLocaleDateString() }}</span>
+                    </div>
+                    <!-- 点赞按钮 -->
+                    <button @click.stop="toggleLike(pn)"
+                      class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-colors"
+                      :class="pn.isLikedByMe ? 'bg-red-50 dark:bg-red-900/30 text-red-500' : 'bg-gray-50 dark:bg-gray-700 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'">
+                      <svg class="w-3.5 h-3.5"
+                        :class="pn.isLikedByMe ? 'fill-current' : 'fill-none stroke-current stroke-2'"
+                        viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                          d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78v0z">
+                        </path>
+                      </svg>
+                      <span>{{ pn.likes > 0 ? pn.likes : '赞' }}</span>
+                    </button>
                   </div>
                   <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{
                     pn.content }}</div>
@@ -1362,14 +1377,37 @@
 
           isLoadingPublicNotes.value = true;
           try {
+            // 1. 获取公开笔记并按点赞数排序，然后按时间倒序
             const { data, error } = await supabaseClient
               .from('public_notes')
               .select('*')
               .eq('question_id', q.id)
+              .order('likes', { ascending: false })
               .order('created_at', { ascending: false });
 
             if (error) throw error;
-            publicNotes.value = data || [];
+
+            // 2. 如果已登录，获取当前用户对这些笔记的点赞状态
+            let myLikes = new Set();
+            if (currentUser.value && data && data.length > 0) {
+              const noteIds = data.map(n => n.id);
+              const { data: likesData, error: likesError } = await supabaseClient
+                .from('note_likes')
+                .select('note_id')
+                .eq('user_id', currentUser.value.id)
+                .in('note_id', noteIds);
+
+              if (!likesError && likesData) {
+                myLikes = new Set(likesData.map(l => l.note_id));
+              }
+            }
+
+            // 3. 组合数据
+            publicNotes.value = (data || []).map(note => ({
+              ...note,
+              likes: note.likes || 0,
+              isLikedByMe: myLikes.has(note.id)
+            }));
 
             // 看看自己有没有发过，如果有，勾选分享到解题广场
             if (currentUser.value) {
@@ -1380,6 +1418,40 @@
             console.error("加载公开笔记失败:", err);
           } finally {
             isLoadingPublicNotes.value = false;
+          }
+        };
+
+        const toggleLike = async (note) => {
+          if (!currentUser.value || !supabaseClient) {
+            alert("请先登录再进行点赞操作！");
+            return;
+          }
+
+          // 乐观更新 UI
+          const originalLiked = note.isLikedByMe;
+          const originalLikes = note.likes;
+
+          note.isLikedByMe = !originalLiked;
+          note.likes += note.isLikedByMe ? 1 : -1;
+
+          try {
+            const { data: currentStatus, error } = await supabaseClient
+              .rpc('toggle_note_like', { p_note_id: note.id });
+
+            if (error) throw error;
+
+            // 根据后端返回的真实状态进行校验/修正
+            // 如果 rpc 返回 true 表示最终状态是已点赞，false 表示未点赞
+            if (note.isLikedByMe !== currentStatus) {
+              note.isLikedByMe = currentStatus;
+              note.likes = originalLikes + (currentStatus ? 1 : (originalLiked ? -1 : 0));
+            }
+          } catch (err) {
+            console.error("点赞操作失败:", err);
+            // 发生错误，回滚 UI 状态
+            note.isLikedByMe = originalLiked;
+            note.likes = originalLikes;
+            alert("点赞失败，请稍后重试");
           }
         };
 
@@ -1459,6 +1531,7 @@
           publicNotes,
           showAllNotes,
           isLoadingPublicNotes,
+          toggleLike,
           toggleNoteArea,
           deleteAccount,
           showAccountModal,
