@@ -1225,12 +1225,12 @@
 
         const tagButtonClass = (enabled, kind) => {
           if (enabled) {
-            if (kind === "star") return "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200";
-            if (kind === "key") return "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200";
-            if (kind === "hard") return "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200";
-            return "bg-gray-100 text-gray-800 border-gray-300";
+            if (kind === "star") return "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border-yellow-400 dark:border-yellow-500 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 ring-2 ring-yellow-300 dark:ring-yellow-600/50";
+            if (kind === "key") return "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-400 dark:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/60 ring-2 ring-blue-300 dark:ring-blue-600/50";
+            if (kind === "hard") return "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-purple-400 dark:border-purple-500 hover:bg-purple-200 dark:hover:bg-purple-900/60 ring-2 ring-purple-300 dark:ring-purple-600/50";
+            return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-400 dark:border-gray-500";
           }
-          return "bg-white text-gray-500 border-gray-200 hover:bg-gray-50";
+          return "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700";
         };
 
         const toggleTag = (tagField) => {
