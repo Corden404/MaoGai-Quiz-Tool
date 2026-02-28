@@ -215,16 +215,26 @@
       <h1 class="text-2xl font-bold mb-6 text-center text-blue-600 dark:text-blue-400">刷题配置</h1>
 
       <!-- 章节选择 -->
-      <div class="mb-4">
-        <h3 class="font-bold mb-2 dark:text-gray-200">选择章节</h3>
-        <div class="flex flex-wrap gap-2">
-          <button v-for="chap in config.chapters" :key="chap" @click="toggleSelection(selectedChapters, chap)"
-            :class="selectedChapters.includes(chap) ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-            class="px-3 py-1 rounded-full text-sm transition hover:opacity-80">
-            {{ chap }}
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-gray-800 dark:text-gray-200">选择章节</h3>
+          <button @click="selectAllChapters" 
+            class="text-sm px-3 py-1 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-medium">
+            全选 / 反选
           </button>
         </div>
-        <div class="mt-2 text-sm text-blue-500 dark:text-blue-400 cursor-pointer" @click="selectAllChapters">全选 / 反选
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button v-for="chap in config.chapters" :key="chap" @click="toggleSelection(selectedChapters, chap)"
+            :class="selectedChapters.includes(chap) ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-300 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-600'"
+            class="text-left p-3 border-2 rounded-xl text-sm transition-all duration-200 flex items-start gap-3 w-full group">
+            <div :class="selectedChapters.includes(chap) ? 'bg-blue-500 border-blue-500' : 'border-gray-300 dark:border-gray-600 group-hover:border-blue-400'" 
+                 class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors">
+              <svg v-if="selectedChapters.includes(chap)" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="font-medium leading-snug flex-1" :class="selectedChapters.includes(chap) ? 'font-bold' : ''">{{ chap }}</span>
+          </button>
         </div>
       </div>
 
@@ -717,8 +727,30 @@
             return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
           });
 
+          // 章节智能排序（支持自然逻辑顺序）
+          const cnNums = "零一二三四五六七八九十";
+          const getChapterWeight = (chap) => {
+            if (chap === "导论" || chap.includes("前言") || chap.includes("绪论")) return -1;
+            if (chap.includes("结束语") || chap.includes("附录")) return 999;
+            const match = chap.match(/第([零一二三四五六七八九十]+)章/);
+            if (match) {
+              const numStr = match[1];
+              let weight = 0;
+              if (numStr === "十") weight = 10;
+              else if (numStr.startsWith("十")) weight = 10 + cnNums.indexOf(numStr[1]);
+              else if (numStr.length === 1) weight = cnNums.indexOf(numStr);
+              return weight > 0 ? weight : 99;
+            }
+            return 100;
+          };
+
           config.value = {
-            chapters: Array.from(chaptersSet).sort(),
+            chapters: Array.from(chaptersSet).sort((a, b) => {
+              const wA = getChapterWeight(a);
+              const wB = getChapterWeight(b);
+              if (wA !== wB) return wA - wB;
+              return a.localeCompare(b, 'zh-CN'); // 权重相同的回退到拼音排序
+            }),
             types: sortedTypes,
           };
 
