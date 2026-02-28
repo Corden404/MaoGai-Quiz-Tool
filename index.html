@@ -14,8 +14,8 @@
       darkMode: "class",
     };
   </script>
-  <!-- 引入 Vue 3 -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- 引入 Vue 3 (更换为更稳定的 jsdelivr CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
   <!-- 引入配置文件与 Supabase SDK -->
   <script src="./config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -239,44 +239,37 @@
       </div>
 
       <!-- 题型选择 -->
-      <div class="mb-4">
-        <h3 class="font-bold mb-2 dark:text-gray-200">选择题型</h3>
-        <div class="flex flex-wrap gap-2">
+      <div class="mb-6">
+        <h3 class="font-bold mb-3 text-gray-800 dark:text-gray-200">选择题型</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <button v-for="t in config.types" :key="t" @click="toggleSelection(selectedTypes, t)"
-            :class="selectedTypes.includes(t) ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-            class="px-3 py-1 rounded-full text-sm transition hover:opacity-80">
-            {{ t }}
+            :class="selectedTypes.includes(t) ? 'bg-green-50 dark:bg-green-900/20 border-green-500 text-green-700 dark:text-green-300 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-300 dark:hover:border-green-600'"
+            class="text-left p-3 border-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-3 w-full group">
+            <div :class="selectedTypes.includes(t) ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-600 group-hover:border-green-400'" 
+                 class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors">
+              <svg v-if="selectedTypes.includes(t)" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="font-medium flex-1" :class="selectedTypes.includes(t) ? 'font-bold' : ''">{{ t }}</span>
           </button>
         </div>
       </div>
 
       <!-- 模式选择 -->
       <div class="mb-6">
-        <h3 class="font-bold mb-2 dark:text-gray-200">刷题模式</h3>
-        <div class="flex flex-wrap gap-4">
-          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-            <input type="radio" v-model="mode" value="sequence" class="text-blue-600" />
-            <span>顺序练习</span>
-          </label>
-          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-            <input type="radio" v-model="mode" value="random" class="text-blue-600" />
-            <span>随机抽题</span>
-          </label>
-          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-            <input type="radio" v-model="mode" value="mistake" class="text-blue-600" />
-            <span>只刷错题</span>
-          </label>
-          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-            <input type="radio" v-model="mode" value="star" class="text-blue-600" />
-            <span>只刷星标</span>
-          </label>
-          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-            <input type="radio" v-model="mode" value="key" class="text-blue-600" />
-            <span>只刷重点</span>
-          </label>
-          <label class="flex items-center space-x-2 cursor-pointer dark:text-gray-300">
-            <input type="radio" v-model="mode" value="hard" class="text-blue-600" />
-            <span>只刷难记</span>
+        <h3 class="font-bold mb-3 text-gray-800 dark:text-gray-200">刷题模式</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <label v-for="m in [{val:'sequence', label:'顺序练习'}, {val:'random', label:'随机抽题'}, {val:'mistake', label:'只刷错题'}, {val:'star', label:'只刷星标'}, {val:'key', label:'只刷重点'}, {val:'hard', label:'只刷难记'}]" :key="m.val" class="cursor-pointer block m-0">
+            <input type="radio" v-model="mode" :value="m.val" class="hidden" />
+            <div :class="mode === m.val ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 text-purple-700 dark:text-purple-300 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-300 dark:hover:border-purple-600'"
+              class="p-3 border-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-3 w-full group h-full">
+              <div :class="mode === m.val ? 'bg-purple-500 border-purple-500' : 'border-gray-300 dark:border-gray-600 group-hover:border-purple-400'" 
+                   class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors">
+                <div v-if="mode === m.val" class="w-2.5 h-2.5 bg-white rounded-full"></div>
+              </div>
+              <span class="font-medium flex-1" :class="mode === m.val ? 'font-bold' : ''">{{ m.label }}</span>
+            </div>
           </label>
         </div>
 
