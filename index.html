@@ -169,6 +169,11 @@
             @click="authMode = authMode === 'login' ? 'register' : 'login'">
             {{ authMode === 'login' ? '没有账号？点击注册 ➔' : '← 已有账号？返回登录' }}
           </div>
+          <div class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4 leading-relaxed">
+            找回密码、忘记密码等更多操作请联系
+            <a href="mailto:support@scau-test.top"
+              class="text-blue-500 hover:underline whitespace-nowrap">support@scau-test.top</a>
+          </div>
         </div>
         <button @click="showAuth = false"
           class="absolute top-3 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-bold text-2xl transition">
@@ -214,6 +219,11 @@
                 取消操作
               </button>
             </div>
+          </div>
+          <div class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4 leading-relaxed">
+            找回密码、忘记密码等更多操作请联系
+            <a href="mailto:support@scau-test.top"
+              class="text-blue-500 hover:underline whitespace-nowrap">support@scau-test.top</a>
           </div>
         </div>
         <button @click="showAccountModal = false; cancelDelete()"
