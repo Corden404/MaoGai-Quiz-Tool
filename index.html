@@ -57,6 +57,20 @@
 <body
   class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen font-sans transition-colors duration-300">
   <div id="app" class="max-w-3xl mx-auto p-4" v-cloak>
+    <!-- 全局 Toast 提示 -->
+    <div v-if="toastInfo.show"
+      class="fixed top-12 left-1/2 transform -translate-x-1/2 z-[150] transition-all duration-300 pointer-events-none">
+      <div :class="{
+        'bg-red-500 text-white': toastInfo.type === 'error',
+        'bg-blue-500 text-white': toastInfo.type === 'info',
+        'bg-green-500 text-white': toastInfo.type === 'success',
+        'bg-yellow-500 text-white': toastInfo.type === 'warning'
+      }"
+        class="px-5 py-2.5 rounded-lg shadow-xl font-bold flex items-center gap-2 max-w-sm whitespace-pre-wrap text-center border dark:border-gray-700">
+        <span>{{ toastInfo.message }}</span>
+      </div>
+    </div>
+
     <!-- 全局加载指示器 (菊花圈) -->
     <div v-if="isGlobalLoading"
       class="fixed inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-[100]">
@@ -663,6 +677,17 @@
         const isGlobalLoading = ref(true);
         const isDark = ref(false);
 
+        // --- 全局 Toast 提示 ---
+        const toastInfo = ref({ show: false, message: '', type: 'info' });
+        let toastTimeout = null;
+        const showToast = (message, type = 'info') => {
+          toastInfo.value = { show: true, message, type };
+          if (toastTimeout) clearTimeout(toastTimeout);
+          toastTimeout = setTimeout(() => {
+            toastInfo.value.show = false;
+          }, 3000);
+        };
+
         const toggleDarkMode = () => {
           isDark.value = !isDark.value;
           if (isDark.value) {
@@ -1117,13 +1142,13 @@
 
           if (mode.value === "global_mistake") {
             if (!supabaseClient) {
-              alert("未连接到云端，无法获取全网易错题。");
+              showToast("未连接到云端，无法获取全网易错题。", "error");
               return;
             }
             isStartingQuiz.value = true;
             try {
               const safeGlobalMinRate = Math.max(0, Math.min(100, Number(globalMistakeMinRate.value || 0))) / 100;
-              
+
               // 调用 RPC 获取易错榜单 (设置 p_min_attempts: 10 确保样本量)
               const { data, error } = await supabaseClient.rpc('get_high_error_questions', {
                 p_min_attempts: 10,
@@ -1133,8 +1158,9 @@
 
               if (error) throw error;
               if (!data || data.length === 0) {
-                alert("目前全网数据不足，或没有符合条件的易错题。");
+                showToast("目前全网数据不足，或没有符合条件的易错题。", "warning");
                 isGlobalLoading.value = false;
+                isStartingQuiz.value = false; // 修复：未设为 false
                 return;
               }
 
@@ -1155,14 +1181,15 @@
               filtered.sort((a, b) => (b.global_error_rate || 0) - (a.global_error_rate || 0));
 
               if (filtered.length === 0) {
-                alert("全网易错榜单中，没有属于您当前勾选章节/题型的题目。");
+                showToast("全网易错榜单中，没有属于您当前勾选章节/题型的题目。", "warning");
                 isGlobalLoading.value = false;
+                isStartingQuiz.value = false; // 修复：未设为 false
                 return;
               }
 
             } catch (err) {
               console.error("获取全网易错题失败:", err);
-              alert("获取全网易错题失败，请检查网络或配置。");
+              showToast("获取全网易错题失败，请检查网络或配置。", "error");
               isGlobalLoading.value = false;
               isStartingQuiz.value = false; // 修复：发生错误时解除按钮卡死状态
               return;
@@ -1192,7 +1219,7 @@
           }
 
           if (filtered.length === 0) {
-            alert("没有找到符合条件的题目");
+            showToast("没有找到符合条件的题目", "info");
             return;
           }
           queue.value = filtered;
@@ -1698,6 +1725,7 @@
           isGlobalLoading,
           isDark,
           toggleDarkMode,
+          toastInfo,
 
           // 暴露认证相关的变量和方法给模板
           currentUser,
