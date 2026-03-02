@@ -1,4 +1,5 @@
 name = "maogai-quiz-tool"
-compatibility_date = "2026-03-02"[assets
-]
+compatibility_date = "2026-03-02"
+
+[assets]
 directory = "./"
