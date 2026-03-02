@@ -128,6 +128,29 @@
       </div>
     </div>
 
+    <!-- 公告弹窗 -->
+    <div v-if="showAnnouncement"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] fade-enter-active p-4">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md relative transition-colors duration-300">
+        <h2 class="text-2xl font-bold mb-4 text-center text-blue-600 dark:text-blue-400">📢 欢迎使用刷题助手</h2>
+        <div class="space-y-3 text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
+          <p>这是一个<strong>完全免费</strong>、专为应对考试打造的刷题工具。</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>智能刷题模式</strong>：顺序、随机、错题重刷、全网易错等。</li>
+            <li><strong>云端进度同步</strong>：注册登录后进度随时保存，多端无缝同步。</li>
+            <li><strong>解题互动广场</strong>：分享你的独家记忆小窍门和解析笔记！</li>
+            <li><strong>安全与隐私</strong>：所有数据安全隔离，请放心使用。</li>
+          </ul>
+          <p class="text-red-500 dark:text-red-400 font-bold text-center mt-4">祝大家逢考必过！✨</p>
+        </div>
+        <button @click="closeAnnouncement"
+          class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow">
+          知道了，开始刷题！
+        </button>
+      </div>
+    </div>
+
     <!-- 登录/注册弹窗 -->
     <div v-if="showAuth"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-enter-active p-4">
@@ -686,6 +709,12 @@
         // --- 全局体验状态 ---
         const isGlobalLoading = ref(true);
         const isDark = ref(false);
+        const showAnnouncement = ref(false);
+
+        const closeAnnouncement = () => {
+          showAnnouncement.value = false;
+          localStorage.setItem("has_seen_announcement_v1", "1");
+        };
 
         // --- 全局 Toast 提示 ---
         const toastInfo = ref({ show: false, message: '', type: 'info' });
@@ -709,8 +738,11 @@
           }
         };
 
-        // 初始化深色模式
+        // 初始化深色模式与公告
         onMounted(() => {
+          if (!localStorage.getItem("has_seen_announcement_v1")) {
+            showAnnouncement.value = true;
+          }
           if (
             localStorage.getItem("theme") === "dark" ||
             (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
@@ -1736,6 +1768,8 @@
           isDark,
           toggleDarkMode,
           toastInfo,
+          showAnnouncement,
+          closeAnnouncement,
 
           // 暴露认证相关的变量和方法给模板
           currentUser,
