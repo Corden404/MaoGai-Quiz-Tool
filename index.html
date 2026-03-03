@@ -688,13 +688,27 @@
 
     const LOCAL_STORAGE_KEY = "maogai_progress_v1";
 
-    // 临时添加：全局错误捕获，防止白屏死机且无报错提示
-    window.addEventListener("error", function (event) {
-      alert("JS 发生错误: " + event.message);
-    });
-    window.addEventListener("unhandledrejection", function (event) {
-      alert("未捕获的 Promise 异常: " + event.reason);
-    });
+    // 全局错误捕获：非阻塞式 DOM 提示条，避免 alert() 阻塞主线程
+    const _showGlobalError = (() => {
+      let count = 0;
+      return (msg) => {
+        if (count >= 3) return; // 防止错误风暴连续轰炸
+        count++;
+        const bar = document.createElement('div');
+        bar.textContent = '⚠️ ' + msg;
+        Object.assign(bar.style, {
+          position: 'fixed', top: '0', left: '0', right: '0', zIndex: '9999',
+          background: '#dc2626', color: '#fff', padding: '10px 16px',
+          fontSize: '14px', fontWeight: 'bold', textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,.3)', transition: 'opacity .4s',
+        });
+        document.body.appendChild(bar);
+        setTimeout(() => { bar.style.opacity = '0'; }, 4500);
+        setTimeout(() => { bar.remove(); count--; }, 5000);
+      };
+    })();
+    window.addEventListener("error", (e) => _showGlobalError("页面发生异常: " + e.message));
+    window.addEventListener("unhandledrejection", (e) => _showGlobalError("网络或数据异常: " + e.reason));
 
     // 初始化 Supabase 客户端
     const supabaseUrl = window.APP_CONFIG?.SUPABASE_URL || "";
@@ -1201,8 +1215,7 @@
               if (error) throw error;
               if (!data || data.length === 0) {
                 showToast("目前全网数据不足，或没有符合条件的易错题。", "warning");
-                isGlobalLoading.value = false;
-                isStartingQuiz.value = false; // 修复：未设为 false
+                isStartingQuiz.value = false;
                 return;
               }
 
@@ -1224,19 +1237,15 @@
 
               if (filtered.length === 0) {
                 showToast("全网易错榜单中，没有属于您当前勾选章节/题型的题目。", "warning");
-                isGlobalLoading.value = false;
-                isStartingQuiz.value = false; // 修复：未设为 false
+                isStartingQuiz.value = false;
                 return;
               }
 
             } catch (err) {
               console.error("获取全网易错题失败:", err);
               showToast("获取全网易错题失败，请检查网络或配置。", "error");
-              isGlobalLoading.value = false;
-              isStartingQuiz.value = false; // 修复：发生错误时解除按钮卡死状态
+              isStartingQuiz.value = false;
               return;
-            } finally {
-              isGlobalLoading.value = false;
             }
           } else if (mode.value === "mistake") {
             filtered = filtered.filter((q) => (q.error_count || 0) >= safeMistakeMinCount);
