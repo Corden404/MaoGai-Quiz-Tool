@@ -379,12 +379,18 @@
         </button>
         <div class="flex-1 mx-4">
           <div class="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex">
-            <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
+            <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300"
+              :style="{ width: progressPercent + '%' }"></div>
           </div>
-          <div class="text-center text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex justify-center items-center gap-2 font-medium">
+          <div
+            class="text-center text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex justify-center items-center gap-2 font-medium">
             <span>{{ currentIndex + 1 }} / {{ queue.length }}</span>
-            <span class="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 rounded-full" v-if="stats.correct > 0">✓ {{ stats.correct }}</span>
-            <span class="flex items-center gap-0.5 text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 rounded-full" v-if="stats.wrong > 0">✗ {{ stats.wrong }}</span>
+            <span
+              class="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 rounded-full"
+              v-if="stats.correct > 0">✓ {{ stats.correct }}</span>
+            <span
+              class="flex items-center gap-0.5 text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 rounded-full"
+              v-if="stats.wrong > 0">✗ {{ stats.wrong }}</span>
           </div>
         </div>
       </div>
@@ -392,31 +398,39 @@
       <!-- 题目卡片 -->
       <div
         class="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700/50 p-4 sm:p-6 rounded-2xl shadow-lg min-h-[400px] flex flex-col transition-colors duration-300">
-        
+
         <!-- 题号与合并标签行 -->
         <div class="mb-5 flex flex-col gap-3 border-b border-slate-100 dark:border-slate-700/50 pb-4">
           <!-- 大题号 -->
           <div class="flex items-baseline space-x-2">
-            <span class="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 font-mono tracking-tight">Q.{{ (currentIndex + 1).toString().padStart(2, '0') }}</span>
+            <span
+              class="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 font-mono tracking-tight">Q.{{
+              (currentIndex + 1).toString().padStart(2, '0') }}</span>
           </div>
-          
+
           <!-- 信息与操作标签合并行 -->
           <div class="flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-2">
-              <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50 text-xs px-2 py-1.5 rounded-md font-medium truncate max-w-[150px] sm:max-w-[200px]" :title="currentQuestion.chapter">
+              <span
+                class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50 text-xs px-2 py-1.5 rounded-md font-medium truncate max-w-[150px] sm:max-w-[200px]"
+                :title="currentQuestion.chapter">
                 {{ currentQuestion.chapter }}
               </span>
-              <span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50 text-xs px-2 py-1.5 rounded-md font-medium whitespace-nowrap">
+              <span
+                class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50 text-xs px-2 py-1.5 rounded-md font-medium whitespace-nowrap">
                 {{ currentQuestion.type }}
               </span>
             </div>
 
             <div class="flex items-center gap-1.5">
-              <div class="cursor-pointer select-none whitespace-nowrap mr-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50 text-xs px-2 py-1 rounded-md transition-colors" @click="showErrorCount = !showErrorCount">
+              <div
+                class="cursor-pointer select-none whitespace-nowrap mr-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50 text-xs px-2 py-1 rounded-md transition-colors"
+                @click="showErrorCount = !showErrorCount">
                 <span v-if="!showErrorCount" class="font-medium opacity-80">查错题</span>
                 <span v-else class="font-bold">错: {{ currentQuestion.error_count || 0 }}</span>
               </div>
-              <button @click="toggleTag('tag_star')" :class="tagButtonClass(currentQuestion.tag_star, 'star')" title="星标"
+              <button @click="toggleTag('tag_star')" :class="tagButtonClass(currentQuestion.tag_star, 'star')"
+                title="星标"
                 class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition focus:outline-none">
                 <span class="text-sm">⭐</span>
               </button>
@@ -424,7 +438,8 @@
                 class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition focus:outline-none">
                 <span class="text-sm">📌</span>
               </button>
-              <button @click="toggleTag('tag_hard')" :class="tagButtonClass(currentQuestion.tag_hard, 'hard')" title="难记"
+              <button @click="toggleTag('tag_hard')" :class="tagButtonClass(currentQuestion.tag_hard, 'hard')"
+                title="难记"
                 class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition focus:outline-none">
                 <span class="text-sm">🧠</span>
               </button>
@@ -441,20 +456,30 @@
         <div class="flex-1">
           <!-- A. 客观题输入区 -->
           <div v-if="isObjective" class="space-y-3">
-            <div v-if="isChoice" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button v-for="opt in ['A','B','C','D']" :key="opt" @click="selectOption(opt)"
-                :class="getOptionClass(opt)"
-                class="py-2.5 sm:py-3 border-2 rounded-xl font-bold transition-all duration-200 text-base sm:text-lg relative flex items-center overflow-hidden group">
-                <div class="w-full text-center">{{ opt }}</div>
-                <div v-if="userSelection.includes(opt)"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">✓</div>
-              </button>
+            <div v-if="isChoice" class="flex flex-col gap-3">
+              <!-- 对于既有选项字母又有具体文本的新情况 -->
+              <button v-for="opt in ['A','B','C','D','E','F']" :key="opt"
+                v-show="currentQuestion.options ? currentQuestion.options[opt] : (opt !== 'E' && opt !== 'F' || (opt === 'E' && hasOptionE) || (opt === 'F' && hasOptionF))"
+                @click="selectOption(opt)" :class="getOptionClass(opt)"
+                class="flex items-start text-left p-3 sm:p-4 border-2 rounded-xl transition-all duration-200 text-base sm:text-lg relative overflow-hidden group w-full">
 
-              <button v-if="hasOptionE" @click="selectOption('E')" :class="getOptionClass('E')"
-                class="py-2.5 sm:py-3 border-2 rounded-xl font-bold transition-all duration-200 text-base sm:text-lg relative flex items-center overflow-hidden group">
-                <div class="w-full text-center">E</div>
-                <div v-if="userSelection.includes('E')"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">✓</div>
+                <div
+                  class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-slate-900/5 dark:bg-white/10 group-hover:bg-black/10 dark:group-hover:bg-white/20 transition-colors mr-3 mt-0.5">
+                  {{ opt }}
+                </div>
+
+                <div class="flex-1 leading-snug break-words pr-8 pt-1 font-medium font-sans">
+                  <template v-if="currentQuestion.options && currentQuestion.options[opt]">
+                    {{ currentQuestion.options[opt] }}
+                  </template>
+                  <template v-else>
+                    <div class="w-full text-center">选项 {{ opt }}</div>
+                  </template>
+                </div>
+
+                <div v-if="userSelection.includes(opt)"
+                  class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in font-bold">
+                  ✓</div>
               </button>
             </div>
 
@@ -462,13 +487,15 @@
               <button v-for="opt in ['正确', '错误']" :key="opt" @click="selectOption(opt)" :class="getOptionClass(opt)"
                 class="py-3 sm:py-4 border-2 rounded-xl font-bold transition-all duration-200 text-lg sm:text-xl relative flex items-center overflow-hidden group">
                 <div class="w-full text-center">{{ opt }}</div>
-                <div v-if="userSelection.includes(opt)" 
-                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">✓</div>
+                <div v-if="userSelection.includes(opt)"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">
+                  ✓</div>
               </button>
             </div>
-            
+
             <div v-if="!hasSubmitted" class="text-right mt-3">
-              <span @click="giveUpAndShowAnswer" class="text-sm font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-pointer inline-flex items-center gap-1 transition-colors">
+              <span @click="giveUpAndShowAnswer"
+                class="text-sm font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-pointer inline-flex items-center gap-1 transition-colors">
                 😵 不会，直接看解析 &raquo;
               </span>
             </div>
@@ -487,7 +514,8 @@
             <div class="font-bold text-lg mb-2 flex items-center gap-2">{{ resultTitle }}</div>
             <div class="text-slate-700 dark:text-slate-200">
               <span class="font-bold opacity-80">参考答案：</span>
-              <span class="text-xl sm:text-2xl font-mono ml-1 bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded">{{ currentQuestion.answer }}</span>
+              <span class="text-xl sm:text-2xl font-mono ml-1 bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded">{{
+                currentQuestion.answer }}</span>
             </div>
           </div>
         </div>
@@ -603,7 +631,8 @@
       </div>
 
       <!-- 🚀 固定底部操作栏 (Fixed Bottom Indicator) -->
-      <div class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700/80 p-3 sm:p-4 z-40 shadow-[0_-8px_16px_rgba(0,0,0,0.02)]">
+      <div
+        class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700/80 p-3 sm:p-4 z-40 shadow-[0_-8px_16px_rgba(0,0,0,0.02)]">
         <div class="max-w-3xl mx-auto">
           <!-- 阶段1: 未提交 -->
           <div v-if="!hasSubmitted">
@@ -616,8 +645,7 @@
           <!-- 阶段2: 已提交 -->
           <div v-else class="fade-enter-active">
             <!-- 主观题自评按钮 -->
-            <div v-if="!isObjective && subjectiveStatus === 'pending'"
-              class="flex flex-row gap-3">
+            <div v-if="!isObjective && subjectiveStatus === 'pending'" class="flex flex-row gap-3">
               <button @click="markSubjective(true)"
                 class="flex-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3.5 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/50 font-bold transition shadow-sm text-center">
                 掌握了 ✓
@@ -642,7 +670,7 @@
         </div>
       </div>
     </div>
-<!-- 3. 结算页面 (Result Page) -->
+    <!-- 3. 结算页面 (Result Page) -->
     <div v-if="status === 'result'"
       class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg max-w-2xl mx-auto mt-6 sm:mt-10 text-center transition-colors duration-300">
       <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-gray-100">🎉 练习完成!</h2>
@@ -1091,11 +1119,17 @@
 
         const hasOptionE = computed(() => {
           if (!isChoice.value) return false;
-          // 如果答案里明确指出 E，则认为有 E 选项
+          if (currentQuestion.value.options && currentQuestion.value.options['E']) return true;
           const ans = currentQuestion.value?.answer || "";
           return ans.includes("E") || ans.includes("e") || ans.includes("Ｅ") || ans.includes("ｅ");
         });
 
+        const hasOptionF = computed(() => {
+          if (!isChoice.value) return false;
+          if (currentQuestion.value.options && currentQuestion.value.options['F']) return true;
+          const ans = currentQuestion.value?.answer || "";
+          return ans.includes("F") || ans.includes("f") || ans.includes("Ｆ") || ans.includes("ｆ");
+        });
         // 判断是否为辨析或判断题 (显示 正确/错误)
         const isJudgment = computed(() => {
           const t = currentQuestion.value.type;
