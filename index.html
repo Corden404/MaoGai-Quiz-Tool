@@ -55,7 +55,7 @@
 </head>
 
 <body
-  class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen font-sans transition-colors duration-300">
+  class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen font-sans transition-colors duration-300">
   <div id="app" class="max-w-3xl mx-auto p-4" v-cloak>
     <!-- 全局 Toast 提示 -->
     <div v-if="toastInfo.show"
@@ -370,64 +370,70 @@
     </div>
 
     <!-- 2. 刷题页面 (Quiz Page) -->
-    <div v-if="status === 'quiz'" class="relative">
+    <div v-if="status === 'quiz'" class="relative pb-28">
       <!-- 顶部栏：进度与退出 -->
       <div class="flex justify-between items-center mb-4">
         <button @click="status='setup'"
-          class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm">
+          class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-sm font-medium">
           ← 退出
         </button>
         <div class="flex-1 mx-4">
-          <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div class="h-full bg-blue-500 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
+          <div class="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex">
+            <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300" :style="{ width: progressPercent + '%' }"></div>
           </div>
-          <div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
-            进度: {{ currentIndex + 1 }} / {{ queue.length }}
-            <span class="ml-2 text-green-600 dark:text-green-400" v-if="stats.correct > 0">✓{{ stats.correct }}</span>
-            <span class="ml-1 text-red-500 dark:text-red-400" v-if="stats.wrong > 0">✗{{ stats.wrong }}</span>
+          <div class="text-center text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex justify-center items-center gap-2 font-medium">
+            <span>{{ currentIndex + 1 }} / {{ queue.length }}</span>
+            <span class="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 rounded-full" v-if="stats.correct > 0">✓ {{ stats.correct }}</span>
+            <span class="flex items-center gap-0.5 text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 rounded-full" v-if="stats.wrong > 0">✗ {{ stats.wrong }}</span>
           </div>
         </div>
       </div>
 
       <!-- 题目卡片 -->
       <div
-        class="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-xl shadow-lg min-h-[400px] flex flex-col transition-colors duration-300">
-        <!-- 题目标签 -->
-        <div class="flex justify-between items-start mb-4">
-          <div class="flex flex-wrap gap-2">
-            <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">{{
-              currentQuestion.chapter }}</span>
-            <span
-              class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded">{{
-              currentQuestion.type }}</span>
+        class="bg-white dark:bg-slate-800 border border-transparent dark:border-slate-700/50 p-4 sm:p-6 rounded-2xl shadow-lg min-h-[400px] flex flex-col transition-colors duration-300">
+        
+        <!-- 题号与合并标签行 -->
+        <div class="mb-5 flex flex-col gap-3 border-b border-slate-100 dark:border-slate-700/50 pb-4">
+          <!-- 大题号 -->
+          <div class="flex items-baseline space-x-2">
+            <span class="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100 font-mono tracking-tight">Q.{{ (currentIndex + 1).toString().padStart(2, '0') }}</span>
           </div>
+          
+          <!-- 信息与操作标签合并行 -->
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-2">
+              <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50 text-xs px-2 py-1.5 rounded-md font-medium truncate max-w-[150px] sm:max-w-[200px]" :title="currentQuestion.chapter">
+                {{ currentQuestion.chapter }}
+              </span>
+              <span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50 text-xs px-2 py-1.5 rounded-md font-medium whitespace-nowrap">
+                {{ currentQuestion.type }}
+              </span>
+            </div>
 
-          <!-- 错误次数（点击显示） -->
-          <div class="cursor-pointer select-none whitespace-nowrap ml-2" @click="showErrorCount = !showErrorCount">
-            <span v-if="!showErrorCount" class="text-gray-300 dark:text-gray-600 text-xs sm:text-sm"> 查看错题数</span>
-            <span v-else class="text-red-500 dark:text-red-400 text-xs sm:text-sm font-bold">历史错误: {{
-              currentQuestion.error_count }} 次</span>
+            <div class="flex items-center gap-1.5">
+              <div class="cursor-pointer select-none whitespace-nowrap mr-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50 text-xs px-2 py-1 rounded-md transition-colors" @click="showErrorCount = !showErrorCount">
+                <span v-if="!showErrorCount" class="font-medium opacity-80">查错题</span>
+                <span v-else class="font-bold">错: {{ currentQuestion.error_count || 0 }}</span>
+              </div>
+              <button @click="toggleTag('tag_star')" :class="tagButtonClass(currentQuestion.tag_star, 'star')" title="星标"
+                class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition focus:outline-none">
+                <span class="text-sm">⭐</span>
+              </button>
+              <button @click="toggleTag('tag_key')" :class="tagButtonClass(currentQuestion.tag_key, 'key')" title="重点"
+                class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition focus:outline-none">
+                <span class="text-sm">📌</span>
+              </button>
+              <button @click="toggleTag('tag_hard')" :class="tagButtonClass(currentQuestion.tag_hard, 'hard')" title="难记"
+                class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition focus:outline-none">
+                <span class="text-sm">🧠</span>
+              </button>
+            </div>
           </div>
-        </div>
-
-        <!-- 题目标签：星标/重点/难记 -->
-        <div class="flex flex-wrap gap-2 mb-4">
-          <button @click="toggleTag('tag_star')" :class="tagButtonClass(currentQuestion.tag_star, 'star')"
-            class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition">
-            ⭐ 星标
-          </button>
-          <button @click="toggleTag('tag_key')" :class="tagButtonClass(currentQuestion.tag_key, 'key')"
-            class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition">
-            📌 重点
-          </button>
-          <button @click="toggleTag('tag_hard')" :class="tagButtonClass(currentQuestion.tag_hard, 'hard')"
-            class="px-3 py-1 rounded-full text-xs sm:text-sm font-bold border transition">
-            🧠 难记
-          </button>
         </div>
 
         <!-- 题目内容 -->
-        <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-gray-100">
+        <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-slate-100">
           {{ currentQuestion.question_content }}
         </div>
 
@@ -435,136 +441,99 @@
         <div class="flex-1">
           <!-- A. 客观题输入区 -->
           <div v-if="isObjective" class="space-y-3">
-            <!-- 情景1：选择题 -->
             <div v-if="isChoice" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- 渲染 ABCD 四项 -->
               <button v-for="opt in ['A','B','C','D']" :key="opt" @click="selectOption(opt)"
                 :class="getOptionClass(opt)"
-                class="py-2.5 sm:py-3 border-2 rounded-lg font-bold transition text-base sm:text-lg relative">
-                {{ opt }}
-                <span v-if="userSelection.includes(opt)"
-                  class="absolute right-3 top-2.5 sm:top-3 text-sm sm:text-base">✓</span>
+                class="py-2.5 sm:py-3 border-2 rounded-xl font-bold transition-all duration-200 text-base sm:text-lg relative flex items-center overflow-hidden group">
+                <div class="w-full text-center">{{ opt }}</div>
+                <div v-if="userSelection.includes(opt)"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">✓</div>
               </button>
 
-              <!-- 渲染 E 项 或 捷径按钮 -->
               <button v-if="hasOptionE" @click="selectOption('E')" :class="getOptionClass('E')"
-                class="py-2.5 sm:py-3 border-2 rounded-lg font-bold transition text-base sm:text-lg relative">
-                E
-                <span v-if="userSelection.includes('E')"
-                  class="absolute right-3 top-2.5 sm:top-3 text-sm sm:text-base">✓</span>
-              </button>
-              <button v-else-if="!hasSubmitted" @click="giveUpAndShowAnswer"
-                class="py-2.5 sm:py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm sm:text-base flex items-center justify-center gap-1">
-                😵 不会，直接看解析
+                class="py-2.5 sm:py-3 border-2 rounded-xl font-bold transition-all duration-200 text-base sm:text-lg relative flex items-center overflow-hidden group">
+                <div class="w-full text-center">E</div>
+                <div v-if="userSelection.includes('E')"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">✓</div>
               </button>
             </div>
 
-            <!-- 情景2：辨析/判断题 (显示 正确/错误) -->
-            <div v-if="isJudgment" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div v-if="isJudgment" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button v-for="opt in ['正确', '错误']" :key="opt" @click="selectOption(opt)" :class="getOptionClass(opt)"
-                class="py-4 border-2 rounded-lg font-bold transition text-lg sm:text-xl relative">
-                {{ opt }}
-                <span v-if="userSelection.includes(opt)" class="absolute right-3 top-3 text-sm sm:text-base">✓</span>
+                class="py-3 sm:py-4 border-2 rounded-xl font-bold transition-all duration-200 text-lg sm:text-xl relative flex items-center overflow-hidden group">
+                <div class="w-full text-center">{{ opt }}</div>
+                <div v-if="userSelection.includes(opt)" 
+                  class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm shadow-sm scale-in">✓</div>
               </button>
+            </div>
+            
+            <div v-if="!hasSubmitted" class="text-right mt-3">
+              <span @click="giveUpAndShowAnswer" class="text-sm font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-pointer inline-flex items-center gap-1 transition-colors">
+                😵 不会，直接看解析 &raquo;
+              </span>
             </div>
           </div>
 
           <!-- B. 主观题输入区 (简答/论述) -->
           <div v-else>
             <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..." @input="autoResize"
-              class="w-full p-3 border dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500 outline-none resize-none overflow-hidden min-h-[100px] transition-colors"></textarea>
+              class="w-full p-4 border dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none outline-none resize-none overflow-hidden min-h-[120px] transition-colors leading-relaxed"></textarea>
           </div>
         </div>
 
-        <!-- 🚀 提交/下一题 按钮区 (上移) -->
-        <div class="mt-8 mb-4">
-          <!-- 阶段1: 未提交 -->
-          <div v-if="!hasSubmitted">
-            <button @click="submitAnswer"
-              class="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow">
-              {{ isObjective ? '提交答案' : '查看参考答案' }}
-            </button>
-          </div>
-
-          <!-- 阶段2: 已提交 (显示结果与解析) -->
-          <div v-else class="fade-enter-active">
-            <!-- 结果反馈 -->
-            <div class="p-4 rounded-lg mb-4" :class="resultClass">
-              <div class="font-bold text-lg mb-1">{{ resultTitle }}</div>
-              <div>
-                <span class="font-bold">参考答案:</span>
-                <span class="text-xl mx-2 font-mono">{{ currentQuestion.answer }}</span>
-              </div>
-            </div>
-
-            <!-- 主观题自评按钮 -->
-            <div v-if="!isObjective && subjectiveStatus === 'pending'"
-              class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
-              <button @click="markSubjective(true)"
-                class="flex-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 py-3 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/60 border border-green-300 dark:border-green-700 font-bold transition">
-                我答对了 (掌握)
-              </button>
-              <button @click="markSubjective(false)"
-                class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-3 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 border border-red-300 dark:border-red-700 font-bold transition">
-                我答错了 (加入错题)
-              </button>
-            </div>
-
-            <!-- 下一题按钮 -->
-            <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-col sm:flex-row gap-3">
-              <button @click="prevQuestion" :disabled="currentIndex === 0"
-                class="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-                ← 上一题
-              </button>
-              <button @click="nextQuestion"
-                class="flex-[2] bg-gray-800 dark:bg-gray-600 hover:bg-gray-900 dark:hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition shadow">
-                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
+        <!-- 提交后的结果反馈 -->
+        <div v-if="hasSubmitted" class="mt-6 fade-enter-active">
+          <div class="p-4 sm:p-5 rounded-xl border" :class="resultClass">
+            <div class="font-bold text-lg mb-2 flex items-center gap-2">{{ resultTitle }}</div>
+            <div class="text-slate-700 dark:text-slate-200">
+              <span class="font-bold opacity-80">参考答案：</span>
+              <span class="text-xl sm:text-2xl font-mono ml-1 bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded">{{ currentQuestion.answer }}</span>
             </div>
           </div>
         </div>
 
         <!-- 📝 笔记功能区域 -->
-        <div class="mt-2 mb-2 border-t dark:border-gray-700 pt-4">
+        <div class="mt-6 border-t border-slate-100 dark:border-slate-700/50 pt-5">
           <div @click="toggleNoteArea"
-            class="cursor-pointer text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-1 select-none font-bold">
-            <span>{{ showNote ? '▼' : '▶' }}</span>
+            class="cursor-pointer text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm flex items-center gap-1 select-none font-bold">
+            <span class="transition-transform duration-200" :class="showNote ? 'rotate-90' : ''">▶</span>
             <span>📝 笔记与解题广场</span>
           </div>
 
-          <div v-if="showNote" class="mt-3 fade-enter-active">
+          <div v-if="showNote" class="mt-4 fade-enter-active">
             <!-- 选项卡 -->
-            <div class="flex border-b dark:border-gray-700 mb-3">
+            <div class="flex border-b border-slate-200 dark:border-slate-700/50 mb-3">
               <button @click="noteTab = 'private'"
-                :class="noteTab === 'private' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                :class="noteTab === 'private' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
                 class="pb-2 px-4 text-sm transition">
                 我的笔记
               </button>
               <button @click="noteTab = 'public'"
-                :class="noteTab === 'public' ? 'border-b-2 border-green-500 text-green-600 dark:text-green-400 font-bold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+                :class="noteTab === 'public' ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
                 class="pb-2 px-4 text-sm transition flex items-center gap-1">
                 解题广场
                 <span v-if="publicNotes.length"
-                  class="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] px-1.5 py-0.5 rounded-full">{{
+                  class="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold">{{
                   publicNotes.length }}</span>
               </button>
             </div>
 
             <!-- 私人笔记区 -->
             <div v-if="noteTab === 'private'"
-              class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-lg p-3">
+              class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl p-3">
               <textarea v-model="noteContent"
-                class="w-full bg-transparent outline-none text-gray-700 dark:text-gray-300 text-sm min-h-[80px] resize-y"
+                class="w-full bg-transparent outline-none text-slate-700 dark:text-slate-300 text-sm min-h-[80px] resize-y"
                 placeholder="这里可以记录私人笔记，或者通过AI生成的解析..."></textarea>
               <div
-                class="flex justify-between items-center mt-2 border-t border-yellow-200/50 dark:border-yellow-700/30 pt-2">
-                <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                class="flex justify-between items-center mt-2 border-t border-amber-200/50 dark:border-amber-700/30 pt-2">
+                <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
                   <input type="checkbox" v-model="shareToPublic"
-                    class="rounded text-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    class="rounded text-indigo-500 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600"
                     :disabled="!currentUser" />
                   <span :class="!currentUser ? 'opacity-50' : ''">分享到解题广场 (需登录)</span>
                 </label>
                 <button @click="saveNote"
-                  class="bg-yellow-500 dark:bg-yellow-600 hover:bg-yellow-600 dark:hover:bg-yellow-700 text-white text-xs px-3 py-1.5 rounded transition shadow">
+                  class="bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg transition shadow font-bold">
                   {{ saveBtnText }}
                 </button>
               </div>
@@ -572,9 +541,9 @@
 
             <!-- 解题广场区 -->
             <div v-if="noteTab === 'public'"
-              class="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3 min-h-[100px]">
+              class="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-3 min-h-[100px]">
               <div v-if="isLoadingPublicNotes" class="h-full flex items-center justify-center py-4">
-                <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <span class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor"
@@ -585,30 +554,29 @@
                 </span>
               </div>
               <div v-else-if="!currentUser" class="h-full flex flex-col items-center justify-center py-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">登录后即可查看同学们的优质解析 🚀</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">登录后即可查看同学们的优质解析 🚀</p>
                 <button @click="openAuthModal('login')"
-                  class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition font-bold">点击登录</button>
+                  class="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition font-bold">点击登录</button>
               </div>
               <div v-else-if="publicNotes.length === 0" class="h-full flex items-center justify-center py-4">
-                <span class="text-sm text-gray-500 dark:text-gray-400">还没有人分享笔记，快来抢沙发吧！🛋️</span>
+                <span class="text-sm text-slate-500 dark:text-slate-400">还没有人分享笔记，快来抢沙发吧！🛋️</span>
               </div>
               <div v-else class="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                 <div v-for="(pn, index) in publicNotes" :key="pn.id" v-show="showAllNotes || index < 3"
-                  class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+                  class="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm transition-colors">
                   <div class="flex justify-between items-center mb-1.5">
                     <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <span
-                          class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[10px]">{{
+                          class="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[10px]">{{
                           pn.user_email.charAt(0).toUpperCase() }}</span>
                         {{ pn.user_email.split('@')[0] }}
                       </span>
-                      <span class="text-[10px] text-gray-400">{{ new Date(pn.created_at).toLocaleDateString() }}</span>
+                      <span class="text-[10px] text-slate-400">{{ new Date(pn.created_at).toLocaleDateString() }}</span>
                     </div>
-                    <!-- 点赞按钮 -->
                     <button @click.stop="toggleLike(pn)"
                       class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-colors"
-                      :class="pn.isLikedByMe ? 'bg-red-50 dark:bg-red-900/30 text-red-500' : 'bg-gray-50 dark:bg-gray-700 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'">
+                      :class="pn.isLikedByMe ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-500' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600'">
                       <svg class="w-3.5 h-3.5"
                         :class="pn.isLikedByMe ? 'fill-current' : 'fill-none stroke-current stroke-2'"
                         viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -619,14 +587,12 @@
                       <span>{{ pn.likes > 0 ? pn.likes : '赞' }}</span>
                     </button>
                   </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{
+                  <div class="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{{
                     pn.content }}</div>
                 </div>
-
-                <!-- 展开/收起 按钮 -->
                 <div v-if="publicNotes.length > 3" class="text-center pt-1">
                   <button @click="showAllNotes = !showAllNotes"
-                    class="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 font-bold transition">
+                    class="text-xs text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400 font-bold transition">
                     {{ showAllNotes ? '收起分享笔记 ▲' : `查看全部 ${publicNotes.length} 条笔记 ▼` }}
                   </button>
                 </div>
@@ -635,9 +601,48 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 3. 结算页面 (Result Page) -->
+      <!-- 🚀 固定底部操作栏 (Fixed Bottom Indicator) -->
+      <div class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700/80 p-3 sm:p-4 z-40 shadow-[0_-8px_16px_rgba(0,0,0,0.02)]">
+        <div class="max-w-3xl mx-auto">
+          <!-- 阶段1: 未提交 -->
+          <div v-if="!hasSubmitted">
+            <button @click="submitAnswer"
+              class="w-full bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-lg">
+              {{ isObjective ? '提交答案' : '查看参考答案' }}
+            </button>
+          </div>
+
+          <!-- 阶段2: 已提交 -->
+          <div v-else class="fade-enter-active">
+            <!-- 主观题自评按钮 -->
+            <div v-if="!isObjective && subjectiveStatus === 'pending'"
+              class="flex flex-row gap-3">
+              <button @click="markSubjective(true)"
+                class="flex-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3.5 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/50 font-bold transition shadow-sm text-center">
+                掌握了 ✓
+              </button>
+              <button @click="markSubjective(false)"
+                class="flex-1 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 py-3.5 rounded-xl hover:bg-rose-200 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-700/50 font-bold transition shadow-sm text-center">
+                答错了 ✗
+              </button>
+            </div>
+
+            <!-- 下一题按钮 -->
+            <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-row gap-3">
+              <button @click="prevQuestion" :disabled="currentIndex === 0"
+                class="flex-[1] bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
+                ← 上一题
+              </button>
+              <button @click="nextQuestion"
+                class="flex-[2] bg-slate-800 dark:bg-slate-600 hover:bg-slate-900 dark:hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-lg">
+                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+<!-- 3. 结算页面 (Result Page) -->
     <div v-if="status === 'result'"
       class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg max-w-2xl mx-auto mt-6 sm:mt-10 text-center transition-colors duration-300">
       <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-gray-100">🎉 练习完成!</h2>
@@ -1113,8 +1118,8 @@
         });
 
         const resultClass = computed(() => {
-          if (!isObjective.value) return "bg-yellow-50 text-yellow-800 border border-yellow-200";
-          return isCorrect.value ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200";
+          if (!isObjective.value) return "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50";
+          return isCorrect.value ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" : "bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50";
         });
 
         const resultTitle = computed(() => {
@@ -1390,14 +1395,14 @@
 
             const isUser = isSelected;
 
-            if (isStd) return "bg-green-500 text-white border-green-600"; // 正确答案色
-            if (isUser && !isStd) return "bg-red-500 text-white border-red-600"; // 用户选错色
-            return "bg-gray-100 text-gray-400 opacity-50"; // 未选且非答案色
+            if (isStd) return "bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500 shadow-md ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-[1.02] z-10";
+            if (isUser && !isStd) return "bg-rose-500 dark:bg-rose-600 text-white border-rose-600 dark:border-rose-500 ring-2 ring-rose-200 dark:ring-rose-900/50";
+            return "bg-slate-100 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500 border-transparent opacity-60";
           }
 
           // 提交前的选中样式
-          if (isSelected) return "bg-blue-100 border-blue-500 text-blue-700";
-          return "bg-white border-gray-200 text-gray-600 hover:bg-gray-50";
+          if (isSelected) return "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500 scale-[1.02] shadow-sm z-10";
+          return "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500";
         };
 
         // 修改 submitAnswer 处理辨析题的判分逻辑
@@ -1489,12 +1494,12 @@
 
         const tagButtonClass = (enabled, kind) => {
           if (enabled) {
-            if (kind === "star") return "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border-yellow-400 dark:border-yellow-500 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 ring-2 ring-yellow-300 dark:ring-yellow-600/50";
-            if (kind === "key") return "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-400 dark:border-blue-500 hover:bg-blue-200 dark:hover:bg-blue-900/60 ring-2 ring-blue-300 dark:ring-blue-600/50";
-            if (kind === "hard") return "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 border-purple-400 dark:border-purple-500 hover:bg-purple-200 dark:hover:bg-purple-900/60 ring-2 ring-purple-300 dark:ring-purple-600/50";
-            return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-400 dark:border-gray-500";
+            if (kind === "star") return "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-400 dark:border-amber-500/50 shadow-sm ring-2 ring-amber-400/50 scale-[1.05]";
+            if (kind === "key") return "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-400 dark:border-indigo-500/50 shadow-sm ring-2 ring-indigo-400/50 scale-[1.05]";
+            if (kind === "hard") return "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-400 dark:border-rose-500/50 shadow-sm ring-2 ring-rose-400/50 scale-[1.05]";
+            return "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-400 dark:border-slate-500";
           }
-          return "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700";
+          return "bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700";
         };
 
         const toggleTag = (tagField) => {
