@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <!-- 引入 driver.js 导览库 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css" />
   <!-- 引入 Tailwind CSS (美化) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -50,6 +52,8 @@
   </script>
   <!-- 引入 Vue 3 (更换为更稳定的 jsdelivr CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+  <!-- 引入 driver.js 核心逻辑 -->
+  <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
   <!-- 引入配置文件与 Supabase SDK -->
   <script src="./config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -209,10 +213,54 @@
       background: rgba(15, 21, 32, 0.85);
     }
 
-    /* === Section card === */
     .section-card {
       border-radius: 20px;
       transition: all 0.3s ease;
+    }
+
+    /* === Driver.js Customization (Dark Mode Support) === */
+    .dark .driver-popover {
+      background-color: #1e2836 !important;
+      color: #f1f5f9 !important;
+    }
+
+    .dark .driver-popover-title {
+      color: #f8fafc !important;
+    }
+
+    .dark .driver-popover-description {
+      color: #cbd5e1 !important;
+    }
+
+    .dark .driver-popover-footer button {
+      background-color: #334155 !important;
+      color: #f1f5f9 !important;
+      border: none !important;
+      text-shadow: none !important;
+    }
+
+    .dark .driver-popover-footer button:hover {
+      background-color: #475569 !important;
+    }
+
+    .dark .driver-popover-progress-text {
+      color: #94a3b8 !important;
+    }
+
+    .dark .driver-popover-arrow-side-left {
+      border-left-color: #1e2836 !important;
+    }
+
+    .dark .driver-popover-arrow-side-right {
+      border-right-color: #1e2836 !important;
+    }
+
+    .dark .driver-popover-arrow-side-top {
+      border-top-color: #1e2836 !important;
+    }
+
+    .dark .driver-popover-arrow-side-bottom {
+      border-bottom-color: #1e2836 !important;
     }
   </style>
 </head>
@@ -440,7 +488,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5">
 
         <!-- ① 选择章节 -->
-        <div
+        <div id="guide-chapter"
           class="section-card bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
           <div class="flex justify-between items-center mb-4">
             <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -473,7 +521,7 @@
           </div>
         </div>
 
-        <div
+        <div id="guide-type"
           class="section-card bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
           <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2">
             <span class="text-brand-500 font-extrabold">2.</span> 选择题型
@@ -498,7 +546,7 @@
         </div>
 
         <!-- ③ 刷题模式 -->
-        <div
+        <div id="guide-mode"
           class="section-card bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
           <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2">
             <span class="text-brand-500 font-extrabold">3.</span> 刷题模式
@@ -551,7 +599,8 @@
       </div>
 
       <!-- CTA 按钮 -->
-      <button @click="startQuiz" :disabled="selectedChapters.length===0 || selectedTypes.length===0 || isStartingQuiz"
+      <button id="guide-start" @click="startQuiz"
+        :disabled="selectedChapters.length===0 || selectedTypes.length===0 || isStartingQuiz"
         class="btn-cta w-full text-white font-extrabold py-4 rounded-2xl text-lg flex justify-center items-center gap-2">
         <svg v-if="isStartingQuiz" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
           fill="none" viewBox="0 0 24 24">
@@ -958,6 +1007,39 @@
         const closeAnnouncement = () => {
           showAnnouncement.value = false;
           localStorage.setItem("has_seen_announcement_v1", "1");
+          // 给一点延迟等弹窗动画结束再弹新手指引
+          setTimeout(() => {
+            if (status.value === 'setup') {
+              startGuide();
+            }
+          }, 300);
+        };
+
+        // --- 新手指引 (driver.js) ---
+        const startGuide = () => {
+          if (localStorage.getItem("has_seen_guide_v1")) return;
+
+          const driver = window.driver.js.driver;
+          const driverObj = driver({
+            showProgress: true,
+            allowClose: true,
+            overlayColor: 'rgba(0,0,0,0.6)',
+            nextBtnText: '下一步',
+            prevBtnText: '上一步',
+            doneBtnText: '完成',
+            progressText: '第 {{current}} 步，共 {{total}} 步',
+            steps: [
+              { element: '#guide-chapter', popover: { title: '1. 选择章节', description: '在这里选择你需要练习的书本章节。你可以单选或多选。' } },
+              { element: '#guide-type', popover: { title: '2. 选择题型', description: '筛选你想做的题型，比如只练单选题或者简答题。' } },
+              { element: '#guide-mode', popover: { title: '3. 刷题模式', description: '提供多种聪明模式，建议后期多用【错题巩固】和【全网易错】。' } },
+              { element: '#guide-start', popover: { title: '准备就绪！', description: '点击开始你的刷题之旅吧！祝逢考必过！✨' } },
+            ],
+            onDestroyed: () => {
+              localStorage.setItem("has_seen_guide_v1", "1");
+            }
+          });
+
+          driverObj.drive();
         };
 
         // --- 全局 Toast 提示 ---
@@ -986,6 +1068,13 @@
         onMounted(() => {
           if (!localStorage.getItem("has_seen_announcement_v1")) {
             showAnnouncement.value = true;
+          } else {
+            // 如果看过公告但没看过指引（老用户刚更新功能），则直接在当前界面初始化指引
+            setTimeout(() => {
+              if (status.value === 'setup') {
+                startGuide();
+              }
+            }, 300);
           }
           if (
             localStorage.getItem("theme") === "dark" ||
