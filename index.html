@@ -1367,6 +1367,9 @@
 
         let syncTimeout = null;
         const saveProgress = () => {
+          // 更新本地变动时间戳，用于多端同步合并比对
+          userProgress.value.last_updated = Date.now();
+
           // 1. 本地存储 (永远最快响应)
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
 
@@ -1392,6 +1395,29 @@
           }
         };
 
+        // 【新增】：监听页面隐藏或卸载，如果有没发出的同步请求，立刻发出
+        const flushSync = () => {
+          if (syncTimeout && currentUser.value && supabaseClient) {
+            clearTimeout(syncTimeout);
+            syncTimeout = null;
+            supabaseClient.from("user_progress").upsert(
+              {
+                user_id: currentUser.value.id,
+                progress_data: userProgress.value,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" },
+            ).then();
+          }
+        };
+
+        onMounted(() => {
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") flushSync();
+          });
+          window.addEventListener("beforeunload", flushSync);
+        });
+
         // 监听登录状态变化，一登录就去拉取云端数据
         watch(currentUser, async (newUser) => {
           if (newUser && supabaseClient) {
@@ -1399,11 +1425,27 @@
               const { data, error } = await supabaseClient.from("user_progress").select("progress_data").eq("user_id", newUser.id).maybeSingle(); // 确保只查自己那条，没数据也不报错
 
               if (data && data.progress_data) {
-                // 拿到了云端数据，覆盖本地并刷新视图
-                userProgress.value = data.progress_data;
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-                mergeProgressToQuestions();
-                console.log("✅ 成功拉取并应用云端进度");
+                const cloudData = data.progress_data;
+                const cloudTimestamp = cloudData.last_updated || 0;
+                const localTimestamp = userProgress.value.last_updated || 0;
+
+                if (cloudTimestamp >= localTimestamp) {
+                  // 云端数据比本地新，覆盖本地并刷新视图
+                  userProgress.value = cloudData;
+                  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+                  mergeProgressToQuestions();
+                  console.log("✅ 成功拉取并应用最新云端进度");
+                } else {
+                  // 本地数据比云端新，触发一次往云端的推送
+                  console.log("⬆️ 发现本地进度更新，正在同步覆盖云端数据");
+                  saveProgress();
+                }
+              } else {
+                // 如果云端还没数据，把本地可能已存在的进度推上去
+                if (Object.keys(userProgress.value.tags || {}).length > 0 || Object.keys(userProgress.value.error_counts || {}).length > 0) {
+                  console.log("⬆️ 云端无数据，同步本地进度至云端");
+                  saveProgress();
+                }
               }
             } catch (err) {
               console.error("获取云端数据失败:", err);
