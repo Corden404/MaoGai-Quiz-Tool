@@ -602,19 +602,34 @@
         </div>
       </div>
 
-      <!-- CTA 按钮 -->
-      <button id="guide-start" @click="startQuiz"
-        :disabled="selectedChapters.length===0 || selectedTypes.length===0 || isStartingQuiz"
-        class="btn-cta w-full text-white font-extrabold py-4 rounded-2xl text-lg flex justify-center items-center gap-2">
-        <svg v-if="isStartingQuiz" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
-          fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-          </path>
-        </svg>
-        {{ isStartingQuiz ? '正在从云端读取数据...' : '开始刷题' }}
-      </button>
+      <!-- CTA 按钮：分体式设计 (3:1) -->
+      <div
+        class="flex rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:-translate-y-0.5 mt-4 sm:mt-5">
+        <!-- 左侧：常规刷题 (占比 3) -->
+        <button id="guide-start" @click="startQuiz(false)"
+          :disabled="selectedChapters.length===0 || selectedTypes.length===0 || isStartingQuiz"
+          class="flex-[3] bg-gradient-to-r from-[#0e9268] to-[#1ab47f] text-white font-extrabold py-4 text-lg flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:brightness-95 transition-all">
+          <svg v-if="isStartingQuiz" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+          {{ isStartingQuiz ? '正在拉取数据...' : '开始刷题' }}
+        </button>
+
+        <!-- 中间分隔线 (透明化处理，靠背景色区分) -->
+        <div class="w-px bg-white/10 self-stretch"></div>
+
+        <!-- 右侧：背题模式 (占比 1) -->
+        <button @click="startQuiz(true)"
+          :disabled="selectedChapters.length===0 || selectedTypes.length===0 || isStartingQuiz"
+          class="flex-[1] bg-gradient-to-r from-cyan-700 to-teal-700 text-white font-extrabold py-4 text-lg flex justify-center items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:brightness-95 transition-all"
+          title="背题模式：直接显示答案与解析，不计对错">
+          <span class="tracking-widest">背题模式</span>
+        </button>
+      </div>
       <!-- 选择摘要 -->
       <p class="text-center text-xs text-slate-400 dark:text-slate-500 mt-3 leading-relaxed">
         已选择: {{ selectedChapters.length }}章节 · {{ selectedTypes.length }}题型 · {{ modeLabels[mode] || mode }}
@@ -754,7 +769,7 @@
           </div>
 
           <!-- B. 主观题输入区 (简答/论述) -->
-          <div v-else>
+          <div v-else-if="!isMemorizeMode">
             <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..." @input="autoResize"
               class="w-full p-4 border dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none outline-none resize-none overflow-hidden min-h-[120px] transition-colors leading-relaxed"></textarea>
           </div>
@@ -825,7 +840,8 @@
               <div v-if="isLoadingPublicNotes" class="h-full flex items-center justify-center py-4">
                 <span class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                    </circle>
                     <path class="opacity-75" fill="currentColor"
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                     </path>
@@ -852,7 +868,8 @@
                           pn.user_email.charAt(0).toUpperCase() }}</span>
                         {{ pn.user_email.split('@')[0] }}
                       </span>
-                      <span class="text-[10px] text-slate-400">{{ new Date(pn.created_at).toLocaleDateString() }}</span>
+                      <span class="text-[10px] text-slate-400">{{ new Date(pn.created_at).toLocaleDateString()
+                        }}</span>
                     </div>
                     <button @click.stop="toggleLike(pn)"
                       class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-colors"
@@ -887,16 +904,16 @@
         class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/40 p-3 sm:p-4 z-40 shadow-[0_-8px_16px_rgba(0,0,0,0.03)]">
         <div class="max-w-3xl mx-auto">
           <!-- 阶段1: 未提交 -->
-          <div v-if="!hasSubmitted">
+          <div v-if="!hasSubmitted && !isMemorizeMode">
             <button @click="submitAnswer" class="btn-cta w-full text-white font-extrabold py-3.5 rounded-2xl text-lg">
               {{ isObjective ? '提交答案' : '查看参考答案' }}
             </button>
           </div>
 
-          <!-- 阶段2: 已提交 -->
+          <!-- 阶段2: 已提交或背题模式 -->
           <div v-else class="fade-enter-active">
-            <!-- 主观题自评按钮 -->
-            <div v-if="!isObjective && subjectiveStatus === 'pending'" class="flex flex-row gap-3">
+            <!-- 主观题自评按钮 (背题模式下隐藏) -->
+            <div v-if="!isObjective && subjectiveStatus === 'pending' && !isMemorizeMode" class="flex flex-row gap-3">
               <button @click="markSubjective(true)"
                 class="flex-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3.5 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/50 font-bold transition shadow-sm text-center">
                 掌握了 ✓
@@ -908,7 +925,7 @@
             </div>
 
             <!-- 下一题按钮 -->
-            <div v-if="isObjective || subjectiveStatus !== 'pending'" class="flex flex-row gap-3">
+            <div v-if="isObjective || subjectiveStatus !== 'pending' || isMemorizeMode" class="flex flex-row gap-3">
               <button @click="prevQuestion" :disabled="currentIndex === 0"
                 class="flex-[1] bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
                 ← 上一题
@@ -1327,6 +1344,7 @@
         const selectedChapters = ref([]);
         const selectedTypes = ref([]);
         const mode = ref("sequence");
+        const isMemorizeMode = ref(false); // 新增：全局背题模式开关
         const randomCount = ref(20);
         const mistakeMinCount = ref(1);
         const globalMistakeMinRate = ref(20);
@@ -1501,11 +1519,13 @@
         });
 
         const resultClass = computed(() => {
+          if (isMemorizeMode.value) return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50";
           if (!isObjective.value) return "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50";
           return isCorrect.value ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" : "bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50";
         });
 
         const resultTitle = computed(() => {
+          if (isMemorizeMode.value) return "📝 参考答案与解析";
           if (!isObjective.value) return "请自我对照";
           return isCorrect.value ? "✅ 回答正确" : "❌ 回答错误";
         });
@@ -1579,7 +1599,8 @@
 
         const isStartingQuiz = ref(false);
 
-        const startQuiz = async () => {
+        const startQuiz = async (memorize = false) => {
+          isMemorizeMode.value = memorize; // 设置当前模式
           const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
 
           let filtered = allQuestions.value.filter((q) => selectedChapters.value.includes(q.chapter) && selectedTypes.value.includes(q.type));
@@ -1671,7 +1692,7 @@
         };
 
         const restartQuiz = () => {
-          startQuiz();
+          startQuiz(isMemorizeMode.value); // 保持重启时的模式一致
         };
 
         const computeGraded = () => {
@@ -1719,15 +1740,19 @@
           const attempt = attempts.value[q.id];
           if (!attempt) {
             resetQuestionState();
+            if (isMemorizeMode.value) {
+              hasSubmitted.value = true;
+              showNote.value = true;
+            }
             return;
           }
           userSelection.value = Array.isArray(attempt.userSelection) ? [...attempt.userSelection] : [];
           userInputText.value = attempt.userInputText || "";
-          hasSubmitted.value = !!attempt.hasSubmitted;
+          hasSubmitted.value = !!attempt.hasSubmitted || isMemorizeMode.value;
           isCorrect.value = !!attempt.isCorrect;
           subjectiveStatus.value = attempt.subjectiveStatus || "pending";
           showErrorCount.value = false;
-          showNote.value = false;
+          showNote.value = isMemorizeMode.value || false;
           noteContent.value = currentQuestion.value.note || "";
           saveBtnText.value = "保存笔记";
           shareToPublic.value = false;
@@ -1744,7 +1769,7 @@
         };
 
         const selectOption = (opt) => {
-          if (hasSubmitted.value) return;
+          if (hasSubmitted.value || isMemorizeMode.value) return; // ✅ 背题模式下禁止点击选项
           if (isMultiSelect.value) {
             const idx = userSelection.value.indexOf(opt);
             if (idx > -1) userSelection.value.splice(idx, 1);
@@ -1821,16 +1846,18 @@
               isCorrect.value = std ? std === uAns : dbAns.startsWith(uAns);
             }
 
-            // 触发全网易错题上报 (仅当存在有效的题目ID时)
-            if (qid) {
-              reportToGlobalStats(qid, isCorrect.value);
-            }
+            if (!isMemorizeMode.value) {
+              // 触发全网易错题上报 (仅当存在有效的题目ID且不是背题模式时)
+              if (qid) {
+                reportToGlobalStats(qid, isCorrect.value);
+              }
 
-            if (isCorrect.value) {
-              stats.value.correct++;
-            } else {
-              stats.value.wrong++;
-              reportError(qid, true);
+              if (isCorrect.value) {
+                stats.value.correct++;
+              } else {
+                stats.value.wrong++;
+                reportError(qid, true);
+              }
             }
 
             if (qid) {
@@ -1854,7 +1881,7 @@
         };
 
         const markSubjective = (correct) => {
-          if (subjectiveStatus.value !== "pending") return;
+          if (subjectiveStatus.value !== "pending" || isMemorizeMode.value) return;
 
           const qid = currentQuestion.value.id;
           const prev = qid ? attempts.value[qid] : null;
@@ -2107,6 +2134,7 @@
           selectedChapters,
           selectedTypes,
           mode,
+          isMemorizeMode,
           randomCount,
           mistakeMinCount,
           globalMistakeMinRate,
