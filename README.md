@@ -2,7 +2,15 @@
 
 这是一个基于 **Vue 3 + Tailwind CSS + Supabase** 的轻量级、跨平台纯前端刷题工具。整个应用作为一个静态页面运行，通过 Supabase 提供后端云服务（BaaS），实现用户认证、数据同步和社区互动。
 
+👉 **[点击这里在线体验网站：scau-test.top](https://scau-test.top)**
+
 ![Icon](icon.png)
+
+## 📸 界面预览
+
+![宣传图1](宣传图1.png)
+![宣传图2](宣传图2.png)
+![宣传图3](宣传图3.png)
 
 ## 🌟 核心特性
 
