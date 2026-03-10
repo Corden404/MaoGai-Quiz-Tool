@@ -8,9 +8,11 @@
 
 ## 📸 界面预览
 
-![宣传图1](宣传图1.png)
-![宣传图2](宣传图2.png)
-![宣传图3](宣传图3.png)
+<p align="center">
+  <img src="宣传图1.png" width="60%" />
+  <img src="宣传图2.png" width="60%" />
+  <img src="宣传图3.png" width="60%" />
+</p>
 
 ## 🌟 核心特性
 
