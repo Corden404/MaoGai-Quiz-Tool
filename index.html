@@ -941,35 +941,52 @@
     <!-- 3. 结算页面 (Result Page) -->
     <div v-if="status === 'result'"
       class="section-card bg-white dark:bg-surface-800 p-6 sm:p-8 border border-slate-200/60 dark:border-slate-700/40 shadow-sm max-w-2xl mx-auto mt-6 sm:mt-10 text-center transition-colors duration-300">
-      <h2 class="text-2xl sm:text-3xl font-extrabold mb-2 text-slate-800 dark:text-slate-100">🎉 练习完成!</h2>
-      <p class="text-slate-500 dark:text-slate-400 mb-8">本次练习统计报告</p>
+      <h2 class="text-2xl sm:text-3xl font-extrabold mb-2 text-slate-800 dark:text-slate-100">
+        🎉 {{ isMemorizeMode ? '背题完成！' : '练习完成！' }}
+      </h2>
+      <p class="text-slate-500 dark:text-slate-400 mb-8">
+        {{ isMemorizeMode ? '本次累计背诵题数' : '本次练习统计报告' }}
+      </p>
 
-      <!-- 统计卡片 -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
-          <div class="text-blue-500 dark:text-blue-400 text-sm font-bold uppercase">总题数</div>
-          <div class="text-4xl font-bold text-blue-700 dark:text-blue-300 mt-2">{{ queue.length }}</div>
+      <template v-if="!isMemorizeMode">
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
+            <div class="text-blue-500 dark:text-blue-400 text-sm font-bold uppercase">总题数</div>
+            <div class="text-4xl font-bold text-blue-700 dark:text-blue-300 mt-2">{{ queue.length }}</div>
+          </div>
+          <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800/50">
+            <div class="text-green-500 dark:text-green-400 text-sm font-bold uppercase">正确</div>
+            <div class="text-4xl font-bold text-green-700 dark:text-green-300 mt-2">{{ stats.correct }}</div>
+          </div>
+          <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
+            <div class="text-red-500 dark:text-red-400 text-sm font-bold uppercase">错误</div>
+            <div class="text-4xl font-bold text-red-700 dark:text-red-300 mt-2">{{ stats.wrong }}</div>
+          </div>
         </div>
-        <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800/50">
-          <div class="text-green-500 dark:text-green-400 text-sm font-bold uppercase">正确</div>
-          <div class="text-4xl font-bold text-green-700 dark:text-green-300 mt-2">{{ stats.correct }}</div>
-        </div>
-        <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
-          <div class="text-red-500 dark:text-red-400 text-sm font-bold uppercase">错误</div>
-          <div class="text-4xl font-bold text-red-700 dark:text-red-300 mt-2">{{ stats.wrong }}</div>
-        </div>
-      </div>
 
-      <!-- 正确率条 -->
-      <div class="mb-8">
-        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
-          <span>正确率</span>
-          <span class="font-bold">{{ accuracy }}%</span>
+        <!-- 正确率条 -->
+        <div class="mb-8">
+          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
+            <span>正确率</span>
+            <span class="font-bold">{{ accuracy }}%</span>
+          </div>
+          <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div class="h-full bg-green-500 dark:bg-green-400" :style="{ width: accuracy + '%' }"></div>
+          </div>
         </div>
-        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div class="h-full bg-green-500 dark:bg-green-400" :style="{ width: accuracy + '%' }"></div>
+      </template>
+      <template v-else>
+        <!-- 背题模式专属卡片 -->
+        <div class="flex justify-center mb-8">
+          <div
+            class="bg-indigo-50 dark:bg-indigo-900/20 px-10 py-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm">
+            <div class="text-indigo-500 dark:text-indigo-400 text-sm font-bold uppercase mb-2 text-center">本次背题数量</div>
+            <div class="text-6xl font-extrabold text-indigo-700 dark:text-indigo-300 text-center">{{ queue.length }}
+            </div>
+          </div>
         </div>
-      </div>
+      </template>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <button @click="status='setup'"
@@ -1721,6 +1738,7 @@
           subjectiveStatus.value = "pending";
           showErrorCount.value = false;
           showNote.value = false;
+          noteTab.value = 'private'; // 修复背题模式下广场空白的Bug：切题时重置为私有笔记，确保下次点开广场能触发请求
           noteContent.value = currentQuestion.value.note || "";
           saveBtnText.value = "保存笔记";
           shareToPublic.value = false;
