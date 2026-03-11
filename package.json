@@ -1,0 +1,11 @@
+{
+    "name": "maogai-quiz-tool",
+    "version": "1.0.0",
+    "description": "Static quiz tool with Tailwind CSS optimization for Cloudflare Pages.",
+    "scripts": {
+        "build": "npx tailwindcss -i ./src/input.css -o ./style.css --minify && node -e \"const fs=require('fs');let c=fs.readFileSync('index.html','utf8');c=c.replace(/<script src=\\\"https:\\/\\/cdn.tailwindcss.com\\\"><\\/script>/g,'');fs.writeFileSync('index.html',c);\""
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.4.0"
+    }
+}

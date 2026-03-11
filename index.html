@@ -14,7 +14,9 @@
     rel="stylesheet">
   <!-- 引入 driver.js 导览库 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css" />
-  <!-- 引入 Tailwind CSS (美化) -->
+  <!-- 引入构建后的静态 CSS (CF 构建后生成) -->
+  <link rel="stylesheet" href="style.css">
+  <!-- 引入 Tailwind CSS (本地开发体验) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -51,13 +53,13 @@
     };
   </script>
   <!-- 引入 Vue 3 (更换为更稳定的 jsdelivr CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js" defer></script>
   <!-- 引入 driver.js 核心逻辑 -->
-  <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" defer></script>
   <!-- 引入配置文件与 Supabase SDK -->
-  <script src="./config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./questions.js"></script>
+  <script src="./config.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="./questions.js" defer></script>
   <style>
     /* === Transitions === */
     .fade-enter-active,
@@ -1053,56 +1055,57 @@
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+    document.addEventListener('DOMContentLoaded', () => {
+      const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
-    const LOCAL_STORAGE_KEY = "maogai_progress_v1";
+      const LOCAL_STORAGE_KEY = "maogai_progress_v1";
 
-    // 全局错误捕获：非阻塞式 DOM 提示条，避免 alert() 阻塞主线程
-    const _showGlobalError = (() => {
-      let count = 0;
-      return (msg) => {
-        if (count >= 3) return; // 防止错误风暴连续轰炸
-        count++;
-        const bar = document.createElement('div');
-        bar.textContent = '⚠️ ' + msg;
-        Object.assign(bar.style, {
-          position: 'fixed', top: '0', left: '0', right: '0', zIndex: '9999',
-          background: '#dc2626', color: '#fff', padding: '10px 16px',
-          fontSize: '14px', fontWeight: 'bold', textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,.3)', transition: 'opacity .4s',
-        });
-        document.body.appendChild(bar);
-        setTimeout(() => { bar.style.opacity = '0'; }, 4500);
-        setTimeout(() => { bar.remove(); count--; }, 5000);
-      };
-    })();
-    window.addEventListener("error", (e) => _showGlobalError("页面发生异常: " + e.message));
-    window.addEventListener("unhandledrejection", (e) => _showGlobalError("网络或数据异常: " + e.reason));
+      // 全局错误捕获：非阻塞式 DOM 提示条，避免 alert() 阻塞主线程
+      const _showGlobalError = (() => {
+        let count = 0;
+        return (msg) => {
+          if (count >= 3) return; // 防止错误风暴连续轰炸
+          count++;
+          const bar = document.createElement('div');
+          bar.textContent = '⚠️ ' + msg;
+          Object.assign(bar.style, {
+            position: 'fixed', top: '0', left: '0', right: '0', zIndex: '9999',
+            background: '#dc2626', color: '#fff', padding: '10px 16px',
+            fontSize: '14px', fontWeight: 'bold', textAlign: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,.3)', transition: 'opacity .4s',
+          });
+          document.body.appendChild(bar);
+          setTimeout(() => { bar.style.opacity = '0'; }, 4500);
+          setTimeout(() => { bar.remove(); count--; }, 5000);
+        };
+      })();
+      window.addEventListener("error", (e) => _showGlobalError("页面发生异常: " + e.message));
+      window.addEventListener("unhandledrejection", (e) => _showGlobalError("网络或数据异常: " + e.reason));
 
-    // 初始化 Supabase 客户端
-    const supabaseUrl = window.APP_CONFIG?.SUPABASE_URL || "";
-    const supabaseKey = window.APP_CONFIG?.SUPABASE_KEY || "";
-    let supabaseClient = null;
-    if (supabaseUrl && supabaseKey) {
-      supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-    }
+      // 初始化 Supabase 客户端
+      const supabaseUrl = window.APP_CONFIG?.SUPABASE_URL || "";
+      const supabaseKey = window.APP_CONFIG?.SUPABASE_KEY || "";
+      let supabaseClient = null;
+      if (supabaseUrl && supabaseKey) {
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+      }
 
-    createApp({
-      setup() {
-        // --- 全局体验状态 ---
-        const isGlobalLoading = ref(true);
-        const isDark = ref(false);
-        const showAnnouncement = ref(false);
-        const showUpdateLogs = ref(false);
+      createApp({
+        setup() {
+          // --- 全局体验状态 ---
+          const isGlobalLoading = ref(true);
+          const isDark = ref(false);
+          const showAnnouncement = ref(false);
+          const showUpdateLogs = ref(false);
 
-        // 统一管理的公告列表 (按时间倒序排列)
-        const announcementsList = [
-          {
-            version: 2,
-            type: "update",
-            title: "🎉 更新公告",
-            date: "2026-03-11",
-            content: `
+          // 统一管理的公告列表 (按时间倒序排列)
+          const announcementsList = [
+            {
+              version: 2,
+              type: "update",
+              title: "🎉 更新公告",
+              date: "2026-03-11",
+              content: `
               <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 mb-3">
                 <p class="font-bold text-indigo-700 dark:text-indigo-400 mb-1">📝 AI 笔记已上线！</p>
                 <p>现在所有题目都配备了 AI 自动生成的参考笔记，可在<strong>解题广场</strong>中查看。</p>
@@ -1112,13 +1115,13 @@
                 <p>AI 生成的内容可能存在错误，请结合教材自行辨别，仅供参考。</p>
               </div>
             `
-          },
-          {
-            version: 1,
-            type: "main",
-            title: "📢 欢迎使用刷题助手",
-            date: "2026-03-01",
-            content: `
+            },
+            {
+              version: 1,
+              type: "main",
+              title: "📢 欢迎使用刷题助手",
+              date: "2026-03-01",
+              content: `
               <p class="mb-2">这是一个<strong>完全免费</strong>、专为SCAUer打造的刷题工具。</p>
               <ul class="list-disc pl-5 space-y-1 mb-4">
                 <li><strong>题库准确保证</strong>：所有题目均来自官方题库，人工手动核对。</li>
@@ -1129,1226 +1132,1227 @@
               </ul>
               <p class="text-red-500 dark:text-red-400 font-bold text-center mt-4">祝大家逢考必过！✨</p>
             `
-          }
-        ];
-
-        const currentAnnouncement = ref(null);
-        const mainAnnouncement = announcementsList.find(a => a.type === "main");
-        const latestUpdate = announcementsList.find(a => a.type === "update");
-
-        const checkAnnouncements = () => {
-          // 1. 检查主公告是否已读
-          const hasSeenMain = localStorage.getItem("main_announcement_seen");
-          if (!hasSeenMain && mainAnnouncement) {
-            currentAnnouncement.value = mainAnnouncement;
-            showAnnouncement.value = true;
-            return;
-          }
-
-          // 2. 检查更新公告是否已读
-          const seenUpdateVersion = parseInt(localStorage.getItem("announcement_seen_version") || "0");
-          if (latestUpdate && seenUpdateVersion < latestUpdate.version) {
-            currentAnnouncement.value = latestUpdate;
-            showAnnouncement.value = true;
-            return;
-          }
-
-          // 3. 全都已经看过了，尝试启动新手指引
-          setTimeout(() => {
-            if (status.value === 'setup') {
-              startGuide();
             }
-          }, 300);
-        };
+          ];
 
-        const closeAnnouncement = () => {
-          showAnnouncement.value = false;
-          if (currentAnnouncement.value) {
-            if (currentAnnouncement.value.type === "main") {
-              localStorage.setItem("main_announcement_seen", "1");
-            } else if (currentAnnouncement.value.type === "update") {
-              localStorage.setItem("announcement_seen_version", String(currentAnnouncement.value.version));
+          const currentAnnouncement = ref(null);
+          const mainAnnouncement = announcementsList.find(a => a.type === "main");
+          const latestUpdate = announcementsList.find(a => a.type === "update");
+
+          const checkAnnouncements = () => {
+            // 1. 检查主公告是否已读
+            const hasSeenMain = localStorage.getItem("main_announcement_seen");
+            if (!hasSeenMain && mainAnnouncement) {
+              currentAnnouncement.value = mainAnnouncement;
+              showAnnouncement.value = true;
+              return;
             }
-          }
 
-          // 给一点延迟等弹窗动画结束再检查下一条
-          setTimeout(() => {
-            checkAnnouncements();
-          }, 300);
-        };
-
-        // --- 新手指引 (driver.js) ---
-        const startGuide = () => {
-          if (localStorage.getItem("has_seen_guide_v1")) return;
-
-          const driver = window.driver.js.driver;
-          const driverObj = driver({
-            showProgress: true,
-            allowClose: true,
-            overlayColor: 'rgba(0,0,0,0.6)',
-            nextBtnText: '下一步',
-            prevBtnText: '上一步',
-            doneBtnText: '完成',
-            progressText: '第 {{current}} 步，共 {{total}} 步',
-            steps: [
-              { element: '#guide-chapter', popover: { title: '1. 选择章节', description: '在这里选择你需要练习的书本章节。你可以单选或多选。' } },
-              { element: '#guide-type', popover: { title: '2. 选择题型', description: '筛选你想做的题型，比如只练单选题或者简答题。' } },
-              { element: '#guide-mode', popover: { title: '3. 刷题模式', description: '提供多种聪明模式，建议后期多用【错题巩固】和【全网易错】。' } },
-              { element: '#guide-start', popover: { title: '准备就绪！', description: '点击开始你的刷题之旅吧！祝逢考必过！✨' } },
-            ],
-            onDestroyed: () => {
-              localStorage.setItem("has_seen_guide_v1", "1");
+            // 2. 检查更新公告是否已读
+            const seenUpdateVersion = parseInt(localStorage.getItem("announcement_seen_version") || "0");
+            if (latestUpdate && seenUpdateVersion < latestUpdate.version) {
+              currentAnnouncement.value = latestUpdate;
+              showAnnouncement.value = true;
+              return;
             }
-          });
 
-          driverObj.drive();
-        };
-
-        // --- 全局 Toast 提示 ---
-        const toastInfo = ref({ show: false, message: '', type: 'info' });
-        let toastTimeout = null;
-        const showToast = (message, type = 'info') => {
-          toastInfo.value = { show: true, message, type };
-          if (toastTimeout) clearTimeout(toastTimeout);
-          toastTimeout = setTimeout(() => {
-            toastInfo.value.show = false;
-          }, 3000);
-        };
-
-        const toggleDarkMode = () => {
-          isDark.value = !isDark.value;
-          if (isDark.value) {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("theme", "dark");
-          } else {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-          }
-        };
-
-        // 初始化深色模式与公告
-        onMounted(() => {
-          checkAnnouncements();
-
-          if (
-            localStorage.getItem("theme") === "dark" ||
-            (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
-          ) {
-            isDark.value = true;
-            document.documentElement.classList.add("dark");
-          }
-        });
-
-        // --- 2. 初始化与数据合并 ---
-        const mergeProgressToQuestions = () => {
-          if (!allQuestions.value.length) return;
-
-          // 每次合并前，先清理一遍遗留数据（防止切换账号时看到上个账号的数据）
-          allQuestions.value.forEach((q) => {
-            delete q.error_count;
-            delete q.note;
-            delete q.tag_star;
-            delete q.tag_key;
-            delete q.tag_hard;
-
-            // 重新注入当前 progress 的数据
-            if (userProgress.value.tags && userProgress.value.tags[q.id]) {
-              Object.assign(q, userProgress.value.tags[q.id]);
-            }
-            if (userProgress.value.error_counts && userProgress.value.error_counts[q.id] !== undefined) {
-              q.error_count = userProgress.value.error_counts[q.id];
-            }
-            if (userProgress.value.notes && userProgress.value.notes[q.id] !== undefined) {
-              q.note = userProgress.value.notes[q.id];
-            }
-          });
-        };
-
-        // --- 0. 账号与认证状态 ---
-        const currentUser = ref(null);
-        const showAuth = ref(false);
-        const authMode = ref("login"); // 'login' or 'register'
-        const authForm = ref({ email: "", password: "" });
-        const authError = ref("");
-        const authLoading = ref(false);
-
-        onMounted(async () => {
-          // 优先加载本地存储数据
-          try {
-            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (stored) userProgress.value = JSON.parse(stored);
-          } catch (e) {
-            console.error("Failed to load progress", e);
-          }
-
-          const data = window.QUESTIONS_DATA;
-          if (!data) {
-            alert("题库加载失败，请确保 questions.js 存在");
-            isGlobalLoading.value = false;
-            return;
-          }
-
-          allQuestions.value = data;
-          mergeProgressToQuestions(); // 初始化合并一次本地数据
-
-          const chaptersSet = new Set(data.map((q) => q.chapter || "未知章节"));
-          const typesSet = new Set(data.map((q) => q.type || "未知题型"));
-
-          const typeOrder = ["单项选择题", "多项选择题", "辨析题", "简答题", "材料分析题", "论述题"];
-          const sortedTypes = Array.from(typesSet).sort((a, b) => {
-            const ia = typeOrder.indexOf(a);
-            const ib = typeOrder.indexOf(b);
-            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-          });
-
-          // 章节智能排序（支持自然逻辑顺序）
-          const cnNums = "零一二三四五六七八九十";
-          const getChapterWeight = (chap) => {
-            if (chap === "导论" || chap.includes("前言") || chap.includes("绪论")) return -1;
-            if (chap.includes("结束语") || chap.includes("附录")) return 999;
-            const match = chap.match(/第([零一二三四五六七八九十]+)章/);
-            if (match) {
-              const numStr = match[1];
-              let weight = 0;
-              if (numStr === "十") weight = 10;
-              else if (numStr.startsWith("十")) weight = 10 + cnNums.indexOf(numStr[1]);
-              else if (numStr.length === 1) weight = cnNums.indexOf(numStr);
-              return weight > 0 ? weight : 99;
-            }
-            return 100;
+            // 3. 全都已经看过了，尝试启动新手指引
+            setTimeout(() => {
+              if (status.value === 'setup') {
+                startGuide();
+              }
+            }, 300);
           };
 
-          config.value = {
-            chapters: Array.from(chaptersSet).sort((a, b) => {
-              const wA = getChapterWeight(a);
-              const wB = getChapterWeight(b);
-              if (wA !== wB) return wA - wB;
-              return a.localeCompare(b, 'zh-CN'); // 权重相同的回退到拼音排序
-            }),
-            types: sortedTypes,
-          };
-
-          selectedChapters.value = [...config.value.chapters];
-          if (config.value.types.length > 0) selectedTypes.value = [config.value.types[0]];
-
-          // 初步渲染已经可以解除全局等待，提升体验感受
-          isGlobalLoading.value = false;
-
-          // 检查并恢复登录状态 (后台静默运行)
-          if (supabaseClient) {
-            // 初始化时获取当前 session
-            const {
-              data: { session },
-            } = await supabaseClient.auth.getSession();
-            if (session) {
-              currentUser.value = session.user;
-              // 注意：数据拉取在 watch(currentUser) 中进行
+          const closeAnnouncement = () => {
+            showAnnouncement.value = false;
+            if (currentAnnouncement.value) {
+              if (currentAnnouncement.value.type === "main") {
+                localStorage.setItem("main_announcement_seen", "1");
+              } else if (currentAnnouncement.value.type === "update") {
+                localStorage.setItem("announcement_seen_version", String(currentAnnouncement.value.version));
+              }
             }
 
-            // 持续监听登录状态变化 (Token 刷新/退出等)
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-              currentUser.value = session ? session.user : null;
+            // 给一点延迟等弹窗动画结束再检查下一条
+            setTimeout(() => {
+              checkAnnouncements();
+            }, 300);
+          };
+
+          // --- 新手指引 (driver.js) ---
+          const startGuide = () => {
+            if (localStorage.getItem("has_seen_guide_v1")) return;
+
+            const driver = window.driver.js.driver;
+            const driverObj = driver({
+              showProgress: true,
+              allowClose: true,
+              overlayColor: 'rgba(0,0,0,0.6)',
+              nextBtnText: '下一步',
+              prevBtnText: '上一步',
+              doneBtnText: '完成',
+              progressText: '第 {{current}} 步，共 {{total}} 步',
+              steps: [
+                { element: '#guide-chapter', popover: { title: '1. 选择章节', description: '在这里选择你需要练习的书本章节。你可以单选或多选。' } },
+                { element: '#guide-type', popover: { title: '2. 选择题型', description: '筛选你想做的题型，比如只练单选题或者简答题。' } },
+                { element: '#guide-mode', popover: { title: '3. 刷题模式', description: '提供多种聪明模式，建议后期多用【错题巩固】和【全网易错】。' } },
+                { element: '#guide-start', popover: { title: '准备就绪！', description: '点击开始你的刷题之旅吧！祝逢考必过！✨' } },
+              ],
+              onDestroyed: () => {
+                localStorage.setItem("has_seen_guide_v1", "1");
+              }
             });
-          }
-        });
-        const openAuthModal = (mode) => {
-          if (!supabaseClient) {
-            alert("尚未配置 config.js 里的 Supabase 密钥，无法连接云端！");
-            return;
-          }
-          authMode.value = mode;
-          authError.value = "";
-          authForm.value = { email: "", password: "" };
-          showAuth.value = true;
-        };
 
-        const handleAuth = async () => {
-          if (!authForm.value.email || !authForm.value.password) {
-            authError.value = "邮箱和密码不能为空";
-            return;
-          }
-          if (authForm.value.password.length < 6) {
-            authError.value = "密码长度至少为 6 位";
-            return;
-          }
-
-          authLoading.value = true;
-          authError.value = "";
-
-          try {
-            if (authMode.value === "login") {
-              const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: authForm.value.email,
-                password: authForm.value.password,
-              });
-              if (error) throw error;
-            } else {
-              const { data, error } = await supabaseClient.auth.signUp({
-                email: authForm.value.email,
-                password: authForm.value.password,
-              });
-              if (error) throw error;
-              alert("注册成功！系统已自动为您登录。");
-            }
-            showAuth.value = false;
-          } catch (error) {
-            console.error("Auth error:", error);
-            // 提供人性化的中文错误提示
-            if (error.message.includes("Invalid login credentials")) {
-              authError.value = "邮箱或密码错误";
-            } else if (error.message.includes("already registered")) {
-              authError.value = "该邮箱已被注册，请直接登录";
-            } else {
-              authError.value = error.message || "操作失败，请重试";
-            }
-          } finally {
-            authLoading.value = false;
-          }
-        };
-
-        const logout = async () => {
-          if (supabaseClient) {
-            await supabaseClient.auth.signOut();
-            // 退出登录时，清空本地记录的刷题进度和打卡记录，避免污染下一个登录的账号
-            userProgress.value = { tags: {}, error_counts: {}, notes: {}, reported_questions: {} };
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-            mergeProgressToQuestions();
-          }
-        };
-
-        const deleteAccount = async () => {
-          if (!currentUser.value || !supabaseClient) return;
-
-          try {
-            isGlobalLoading.value = true;
-            const { error } = await supabaseClient.rpc('delete_user');
-            if (error) throw error;
-
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-            alert("账号已成功注销并清除所有数据。");
-            showAccountModal.value = false;
-            cancelDelete();
-            await logout();
-          } catch (err) {
-            console.error("注销账号失败:", err);
-            if (err.message && err.message.includes('schema cache')) {
-              alert("注销失败：数据库接口尚未就绪。\n\n解决方案：请回到 Supabase 的 SQL Editor 运行以下命令刷新缓存：\nNOTIFY pgrst, reload schema;");
-            } else {
-              alert("注销账号失败: " + (err.message || "未知错误"));
-            }
-          } finally {
-            isGlobalLoading.value = false;
-          }
-        };
-
-        const showAccountModal = ref(false);
-        const showUserMenu = ref(false);
-        const isDeletingAccount = ref(false);
-        const deleteCountdown = ref(5);
-        let countdownTimer = null;
-
-        const startDeleteCountdown = () => {
-          isDeletingAccount.value = true;
-          deleteCountdown.value = 5;
-          countdownTimer = setInterval(() => {
-            deleteCountdown.value--;
-            if (deleteCountdown.value <= 0) {
-              clearInterval(countdownTimer);
-            }
-          }, 1000);
-        };
-
-        const cancelDelete = () => {
-          isDeletingAccount.value = false;
-          deleteCountdown.value = 5;
-          if (countdownTimer) clearInterval(countdownTimer);
-        };
-
-        // --- 1. 状态变量 ---
-        const allQuestions = ref([]);
-        const userProgress = ref({ tags: {}, error_counts: {}, notes: {}, reported_questions: {} });
-
-        const status = ref("setup");
-        const config = ref({ chapters: [], types: [] });
-        const queue = ref([]);
-        const currentIndex = ref(0);
-
-        // 筛选设置
-        const selectedChapters = ref([]);
-        const selectedTypes = ref([]);
-        const mode = ref("sequence");
-        const isMemorizeMode = ref(false); // 新增：全局背题模式开关
-        const randomCount = ref(20);
-        const mistakeMinCount = ref(1);
-        const globalMistakeMinRate = ref(20);
-
-        // Mode labels for display
-        const modeLabels = {
-          sequence: '顺序练习', random: '随机抽题', mistake: '错题巩固',
-          global_mistake: '全网易错', star: '星标练习', key: '重点练习', hard: '难记练习'
-        };
-
-        // Type icon mapping
-        const getTypeIcon = (type) => {
-          const iconMap = {
-            '单项选择题': '◉', '多项选择题': '▦',
-            '辨析题': '⚖', '简答题': '✍',
-            '材料分析题': '📊', '论述题': '📃'
+            driverObj.drive();
           };
-          return iconMap[type] || '❓';
-        };
 
-        // 答题状态
-        const userSelection = ref([]);
-        const userInputText = ref("");
-        const hasSubmitted = ref(false);
-        const isCorrect = ref(false);
-        const subjectiveStatus = ref("pending");
-        const showErrorCount = ref(false);
-        const textarea = ref(null);
+          // --- 全局 Toast 提示 ---
+          const toastInfo = ref({ show: false, message: '', type: 'info' });
+          let toastTimeout = null;
+          const showToast = (message, type = 'info') => {
+            toastInfo.value = { show: true, message, type };
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+              toastInfo.value.show = false;
+            }, 3000);
+          };
 
-        // 笔记相关
-        const showNote = ref(false);
-        const noteContent = ref("");
-        const saveBtnText = ref("保存笔记");
-        const noteTab = ref('private');
-        const shareToPublic = ref(false);
-        const publicNotes = ref([]);
-        const isLoadingPublicNotes = ref(false);
+          const toggleDarkMode = () => {
+            isDark.value = !isDark.value;
+            if (isDark.value) {
+              document.documentElement.classList.add("dark");
+              localStorage.setItem("theme", "dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+              localStorage.setItem("theme", "light");
+            }
+          };
 
-        // 统计数据
-        const stats = ref({ correct: 0, wrong: 0 });
-        const attempts = ref({});
+          // 初始化深色模式与公告
+          onMounted(() => {
+            checkAnnouncements();
 
-        let syncTimeout = null;
-        const saveProgress = () => {
-          // 更新本地变动时间戳，用于多端同步合并比对
-          userProgress.value.last_updated = Date.now();
-
-          // 1. 本地存储 (永远最快响应)
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-
-          // 2. 云端同步 (如果有账号登录，加入防抖推送到云端)
-          if (currentUser.value && supabaseClient) {
-            clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(async () => {
-              try {
-                const { error } = await supabaseClient.from("user_progress").upsert(
-                  {
-                    user_id: currentUser.value.id,
-                    progress_data: userProgress.value,
-                    updated_at: new Date().toISOString(),
-                  },
-                  { onConflict: "user_id" },
-                ); // 使用 user_id 作为冲突主键
-                if (error) console.error("云端同步失败:", error);
-                else console.log("☁️ 进度已同步至云端");
-              } catch (e) {
-                console.error("云端同步异常:", e);
-              }
-            }, 1500); // 1.5秒防抖，避免频繁打字发请求
-          }
-        };
-
-        // 【新增】：监听页面隐藏或卸载，如果有没发出的同步请求，立刻发出
-        const flushSync = () => {
-          if (syncTimeout && currentUser.value && supabaseClient) {
-            clearTimeout(syncTimeout);
-            syncTimeout = null;
-            supabaseClient.from("user_progress").upsert(
-              {
-                user_id: currentUser.value.id,
-                progress_data: userProgress.value,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "user_id" },
-            ).then();
-          }
-        };
-
-        onMounted(() => {
-          document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "hidden") flushSync();
+            if (
+              localStorage.getItem("theme") === "dark" ||
+              (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+            ) {
+              isDark.value = true;
+              document.documentElement.classList.add("dark");
+            }
           });
-          window.addEventListener("beforeunload", flushSync);
-        });
 
-        // 监听登录状态变化，一登录就去拉取云端数据
-        watch(currentUser, async (newUser) => {
-          if (newUser && supabaseClient) {
-            try {
-              const { data, error } = await supabaseClient.from("user_progress").select("progress_data").eq("user_id", newUser.id).maybeSingle(); // 确保只查自己那条，没数据也不报错
+          // --- 2. 初始化与数据合并 ---
+          const mergeProgressToQuestions = () => {
+            if (!allQuestions.value.length) return;
 
-              if (data && data.progress_data) {
-                const cloudData = data.progress_data;
-                const cloudTimestamp = cloudData.last_updated || 0;
-                const localTimestamp = userProgress.value.last_updated || 0;
+            // 每次合并前，先清理一遍遗留数据（防止切换账号时看到上个账号的数据）
+            allQuestions.value.forEach((q) => {
+              delete q.error_count;
+              delete q.note;
+              delete q.tag_star;
+              delete q.tag_key;
+              delete q.tag_hard;
 
-                if (cloudTimestamp >= localTimestamp) {
-                  // 云端数据比本地新，覆盖本地并刷新视图
-                  userProgress.value = cloudData;
-                  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-                  mergeProgressToQuestions();
-                  console.log("✅ 成功拉取并应用最新云端进度");
-                } else {
-                  // 本地数据比云端新，触发一次往云端的推送
-                  console.log("⬆️ 发现本地进度更新，正在同步覆盖云端数据");
-                  saveProgress();
-                }
-              } else {
-                // 如果云端还没数据，把本地可能已存在的进度推上去
-                if (Object.keys(userProgress.value.tags || {}).length > 0 || Object.keys(userProgress.value.error_counts || {}).length > 0) {
-                  console.log("⬆️ 云端无数据，同步本地进度至云端");
-                  saveProgress();
-                }
+              // 重新注入当前 progress 的数据
+              if (userProgress.value.tags && userProgress.value.tags[q.id]) {
+                Object.assign(q, userProgress.value.tags[q.id]);
               }
-            } catch (err) {
-              console.error("获取云端数据失败:", err);
+              if (userProgress.value.error_counts && userProgress.value.error_counts[q.id] !== undefined) {
+                q.error_count = userProgress.value.error_counts[q.id];
+              }
+              if (userProgress.value.notes && userProgress.value.notes[q.id] !== undefined) {
+                q.note = userProgress.value.notes[q.id];
+              }
+            });
+          };
+
+          // --- 0. 账号与认证状态 ---
+          const currentUser = ref(null);
+          const showAuth = ref(false);
+          const authMode = ref("login"); // 'login' or 'register'
+          const authForm = ref({ email: "", password: "" });
+          const authError = ref("");
+          const authLoading = ref(false);
+
+          onMounted(async () => {
+            // 优先加载本地存储数据
+            try {
+              const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+              if (stored) userProgress.value = JSON.parse(stored);
+            } catch (e) {
+              console.error("Failed to load progress", e);
             }
-          }
-        });
 
-        // --- 3. 计算属性 ---
-        const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
-
-        // 判断是否为纯选择题 (显示 A-E)
-        const isChoice = computed(() => {
-          const t = currentQuestion.value.type;
-          return t && t.includes("选择");
-        });
-
-        const hasOptionE = computed(() => {
-          if (!isChoice.value) return false;
-          if (currentQuestion.value.options && currentQuestion.value.options['E']) return true;
-          const ans = currentQuestion.value?.answer || "";
-          return ans.includes("E") || ans.includes("e") || ans.includes("Ｅ") || ans.includes("ｅ");
-        });
-
-        const hasOptionF = computed(() => {
-          if (!isChoice.value) return false;
-          if (currentQuestion.value.options && currentQuestion.value.options['F']) return true;
-          const ans = currentQuestion.value?.answer || "";
-          return ans.includes("F") || ans.includes("f") || ans.includes("Ｆ") || ans.includes("ｆ");
-        });
-        // 判断是否为辨析或判断题 (显示 正确/错误)
-        const isJudgment = computed(() => {
-          const t = currentQuestion.value.type;
-          return t && (t.includes("辨析") || t.includes("判断"));
-        });
-
-        // isObjective 保持为 true，用于控制显示按钮区还是文本框区
-        const isObjective = computed(() => {
-          return isChoice.value || isJudgment.value;
-        });
-
-        const isMultiSelect = computed(() => {
-          const t = currentQuestion.value.type;
-          return t && (t.includes("多项") || t.includes("不定项"));
-        });
-
-        const progressPercent = computed(() => {
-          if (queue.value.length === 0) return 0;
-          return ((currentIndex.value + 1) / queue.value.length) * 100;
-        });
-
-        const resultClass = computed(() => {
-          if (isMemorizeMode.value) return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50";
-          if (!isObjective.value) return "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50";
-          return isCorrect.value ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" : "bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50";
-        });
-
-        const resultTitle = computed(() => {
-          if (isMemorizeMode.value) return "📝 参考答案与解析";
-          if (!isObjective.value) return "请自我对照";
-          return isCorrect.value ? "✅ 回答正确" : "❌ 回答错误";
-        });
-
-        const accuracy = computed(() => {
-          const totalDone = stats.value.correct + stats.value.wrong;
-          if (totalDone === 0) return 0;
-          return ((stats.value.correct / totalDone) * 100).toFixed(1);
-        });
-
-        const normalizeText = (v) => {
-          if (v === null || v === undefined) return "";
-          return String(v)
-            .replace(/\uFEFF/g, "")
-            .trim();
-        };
-
-        const normalizeJudgmentToken = (token) => {
-          if (!token) return null;
-          if (token === "正确" || token === "对" || token === "√") return "正确";
-          if (token === "错误" || token === "错" || token === "×" || token === "✗") return "错误";
-          return null;
-        };
-
-        // 从答案文本中提取“正确/错误”，兼容："答：错误。..." / "错误" / "正确。..." / "对/错/√/×" 等
-        const parseJudgmentAnswer = (rawAnswer) => {
-          const s = normalizeText(rawAnswer);
-          if (!s) return null;
-
-          // 强匹配：只在开头附近找结论，避免解析段落里出现“正确/错误”干扰
-          const head = s.match(
-            /^\s*(?:[“"'‘’\[\]（）()【】]|【[^】]*】)*\s*(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)\s*[：:\-－—]?\s*)?(正确|错误|对|错|√|×|✗)/,
-          );
-          if (head) return normalizeJudgmentToken(head[1]);
-
-          // 去空白后再试一次（处理“答： 错误 ...”这类）
-          const compact = s.replace(/\s+/g, "");
-          const compactHead = compact.match(/^(?:【[^】]*】)?(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)[：:\-－—]?)?(正确|错误|对|错|√|×|✗)/);
-          if (compactHead) return normalizeJudgmentToken(compactHead[1]);
-
-          // 弱匹配：仅在很短的前缀里找“正确/错误”
-          const early = compact.slice(0, 12);
-          const earlyHit = early.match(/正确|错误/);
-          if (earlyHit) return earlyHit[0];
-
-          // 兜底：只看第一句，取更靠前的那个
-          const firstSentence = s.split(/[\r\n。.!?？；;]/)[0];
-          const idxCorrect = firstSentence.indexOf("正确");
-          const idxWrong = firstSentence.indexOf("错误");
-          if (idxCorrect === -1 && idxWrong === -1) return null;
-          if (idxCorrect !== -1 && idxWrong === -1) return "正确";
-          if (idxWrong !== -1 && idxCorrect === -1) return "错误";
-          return idxCorrect < idxWrong ? "正确" : "错误";
-        };
-
-        // --- 4. 方法 ---
-
-        const toggleSelection = (list, item) => {
-          const idx = list.indexOf(item);
-          if (idx > -1) list.splice(idx, 1);
-          else list.push(item);
-        };
-
-        const selectAllChapters = () => {
-          if (selectedChapters.value.length === config.value.chapters.length) {
-            selectedChapters.value = [];
-          } else {
-            selectedChapters.value = [...config.value.chapters];
-          }
-        };
-
-        const isStartingQuiz = ref(false);
-
-        const startQuiz = async (memorize = false) => {
-          isMemorizeMode.value = memorize; // 设置当前模式
-          const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
-
-          let filtered = allQuestions.value.filter((q) => selectedChapters.value.includes(q.chapter) && selectedTypes.value.includes(q.type));
-
-          if (mode.value === "global_mistake") {
-            if (!supabaseClient) {
-              showToast("未连接到云端，无法获取全网易错题。", "error");
+            const data = window.QUESTIONS_DATA;
+            if (!data) {
+              alert("题库加载失败，请确保 questions.js 存在");
+              isGlobalLoading.value = false;
               return;
             }
-            isStartingQuiz.value = true;
-            try {
-              const safeGlobalMinRate = Math.max(0, Math.min(100, Number(globalMistakeMinRate.value || 0))) / 100;
 
-              // 调用 RPC 获取易错榜单 (设置 p_min_attempts: 10 确保样本量)
-              const { data, error } = await supabaseClient.rpc('get_high_error_questions', {
-                p_min_attempts: 10,
-                p_limit: 50,
-                p_min_error_rate: safeGlobalMinRate
-              });
+            allQuestions.value = data;
+            mergeProgressToQuestions(); // 初始化合并一次本地数据
 
-              if (error) throw error;
-              if (!data || data.length === 0) {
-                showToast("由于项目处于早期阶段，目前使用人数不多，暂时无法收集到足够多的有效易错题数据，或没有符合条件的题目。", "warning");
-                isStartingQuiz.value = false;
-                return;
+            const chaptersSet = new Set(data.map((q) => q.chapter || "未知章节"));
+            const typesSet = new Set(data.map((q) => q.type || "未知题型"));
+
+            const typeOrder = ["单项选择题", "多项选择题", "辨析题", "简答题", "材料分析题", "论述题"];
+            const sortedTypes = Array.from(typesSet).sort((a, b) => {
+              const ia = typeOrder.indexOf(a);
+              const ib = typeOrder.indexOf(b);
+              return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+            });
+
+            // 章节智能排序（支持自然逻辑顺序）
+            const cnNums = "零一二三四五六七八九十";
+            const getChapterWeight = (chap) => {
+              if (chap === "导论" || chap.includes("前言") || chap.includes("绪论")) return -1;
+              if (chap.includes("结束语") || chap.includes("附录")) return 999;
+              const match = chap.match(/第([零一二三四五六七八九十]+)章/);
+              if (match) {
+                const numStr = match[1];
+                let weight = 0;
+                if (numStr === "十") weight = 10;
+                else if (numStr.startsWith("十")) weight = 10 + cnNums.indexOf(numStr[1]);
+                else if (numStr.length === 1) weight = cnNums.indexOf(numStr);
+                return weight > 0 ? weight : 99;
               }
-
-              // 根据返回的 question_id 提取本地题目，并按错误率排序
-              const globalIds = data.map(item => item.question_id);
-              // 还要受当前勾选的章节和题型限制
-              filtered = filtered.filter(q => globalIds.includes(q.id));
-
-              // 将错误率数据挂载到题目对象上，方便（可选）在界面展示，同时用于排序
-              filtered.forEach(q => {
-                const stats = data.find(d => d.question_id === q.id);
-                if (stats) {
-                  q.global_error_rate = stats.error_rate;
-                }
-              });
-
-              // 按错误率倒序排列
-              filtered.sort((a, b) => (b.global_error_rate || 0) - (a.global_error_rate || 0));
-
-              if (filtered.length === 0) {
-                showToast("全网易错榜单中，没有属于您当前勾选章节/题型的题目。", "warning");
-                isStartingQuiz.value = false;
-                return;
-              }
-
-            } catch (err) {
-              console.error("获取全网易错题失败:", err);
-              showToast("获取全网易错题失败，请检查网络或配置。", "error");
-              isStartingQuiz.value = false;
-              return;
-            }
-          } else if (mode.value === "mistake") {
-            filtered = filtered.filter((q) => (q.error_count || 0) >= safeMistakeMinCount);
-            filtered.sort((a, b) => (b.error_count || 0) - (a.error_count || 0));
-          } else if (["star", "key", "hard"].includes(mode.value)) {
-            const tagMap = {
-              star: "tag_star",
-              key: "tag_key",
-              hard: "tag_hard",
+              return 100;
             };
-            const tagField = tagMap[mode.value];
-            filtered = filtered.filter((q) => !!q[tagField]);
-          } else if (mode.value === "random") {
-            for (let i = filtered.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+
+            config.value = {
+              chapters: Array.from(chaptersSet).sort((a, b) => {
+                const wA = getChapterWeight(a);
+                const wB = getChapterWeight(b);
+                if (wA !== wB) return wA - wB;
+                return a.localeCompare(b, 'zh-CN'); // 权重相同的回退到拼音排序
+              }),
+              types: sortedTypes,
+            };
+
+            selectedChapters.value = [...config.value.chapters];
+            if (config.value.types.length > 0) selectedTypes.value = [config.value.types[0]];
+
+            // 初步渲染已经可以解除全局等待，提升体验感受
+            isGlobalLoading.value = false;
+
+            // 检查并恢复登录状态 (后台静默运行)
+            if (supabaseClient) {
+              // 初始化时获取当前 session
+              const {
+                data: { session },
+              } = await supabaseClient.auth.getSession();
+              if (session) {
+                currentUser.value = session.user;
+                // 注意：数据拉取在 watch(currentUser) 中进行
+              }
+
+              // 持续监听登录状态变化 (Token 刷新/退出等)
+              supabaseClient.auth.onAuthStateChange((_event, session) => {
+                currentUser.value = session ? session.user : null;
+              });
             }
-            const count = Number(randomCount.value) || 20;
-            if (count < filtered.length) {
-              filtered = filtered.slice(0, count);
+          });
+          const openAuthModal = (mode) => {
+            if (!supabaseClient) {
+              alert("尚未配置 config.js 里的 Supabase 密钥，无法连接云端！");
+              return;
             }
-          }
-
-          if (filtered.length === 0) {
-            showToast("没有找到符合条件的题目", "info");
-            return;
-          }
-          queue.value = filtered;
-          currentIndex.value = 0;
-          stats.value = { correct: 0, wrong: 0 };
-          attempts.value = {};
-          loadQuestionState();
-          status.value = "quiz";
-          isStartingQuiz.value = false; // 成功进入答题后，重置按钮状态
-        };
-
-        const restartQuiz = () => {
-          startQuiz(isMemorizeMode.value); // 保持重启时的模式一致
-        };
-
-        const computeGraded = () => {
-          if (isObjective.value) return hasSubmitted.value;
-          return hasSubmitted.value && subjectiveStatus.value !== "pending";
-        };
-
-        const storeCurrentAttempt = () => {
-          const q = currentQuestion.value;
-          if (!q || !q.id) return;
-          attempts.value[q.id] = {
-            userSelection: Array.isArray(userSelection.value) ? [...userSelection.value] : [],
-            userInputText: userInputText.value || "",
-            hasSubmitted: !!hasSubmitted.value,
-            isCorrect: !!isCorrect.value,
-            subjectiveStatus: subjectiveStatus.value || "pending",
-            graded: computeGraded(),
+            authMode.value = mode;
+            authError.value = "";
+            authForm.value = { email: "", password: "" };
+            showAuth.value = true;
           };
-        };
 
-        const resetQuestionState = () => {
-          userSelection.value = [];
-          userInputText.value = "";
-          hasSubmitted.value = false;
-          isCorrect.value = false;
-          subjectiveStatus.value = "pending";
-          showErrorCount.value = false;
-          showNote.value = false;
-          noteTab.value = 'private'; // 修复背题模式下广场空白的Bug：切题时重置为私有笔记，确保下次点开广场能触发请求
-          noteContent.value = currentQuestion.value.note || "";
-          saveBtnText.value = "保存笔记";
-          shareToPublic.value = false;
-          publicNotes.value = [];
-          showAllNotes.value = false;
-          nextTick(() => {
-            if (textarea.value) textarea.value.style.height = "auto";
-          });
-        };
-
-        const loadQuestionState = () => {
-          const q = currentQuestion.value;
-          if (!q || !q.id) {
-            resetQuestionState();
-            return;
-          }
-          const attempt = attempts.value[q.id];
-          if (!attempt) {
-            resetQuestionState();
-            if (isMemorizeMode.value) {
-              hasSubmitted.value = true;
-              showNote.value = true;
+          const handleAuth = async () => {
+            if (!authForm.value.email || !authForm.value.password) {
+              authError.value = "邮箱和密码不能为空";
+              return;
             }
-            return;
-          }
-          userSelection.value = Array.isArray(attempt.userSelection) ? [...attempt.userSelection] : [];
-          userInputText.value = attempt.userInputText || "";
-          hasSubmitted.value = !!attempt.hasSubmitted || isMemorizeMode.value;
-          isCorrect.value = !!attempt.isCorrect;
-          subjectiveStatus.value = attempt.subjectiveStatus || "pending";
-          showErrorCount.value = false;
-          showNote.value = isMemorizeMode.value || false;
-          noteContent.value = currentQuestion.value.note || "";
-          saveBtnText.value = "保存笔记";
-          shareToPublic.value = false;
-          publicNotes.value = [];
-          showAllNotes.value = false;
-          nextTick(() => {
-            if (textarea.value) textarea.value.style.height = "auto";
-          });
-        };
-
-        const autoResize = (e) => {
-          e.target.style.height = "auto";
-          e.target.style.height = e.target.scrollHeight + "px";
-        };
-
-        const selectOption = (opt) => {
-          if (hasSubmitted.value || isMemorizeMode.value) return; // ✅ 背题模式下禁止点击选项
-          if (isMultiSelect.value) {
-            const idx = userSelection.value.indexOf(opt);
-            if (idx > -1) userSelection.value.splice(idx, 1);
-            else userSelection.value.push(opt);
-          } else {
-            userSelection.value = [opt];
-          }
-        };
-
-        // 修改 getOptionClass 以适应 "正确/错误" 按钮的样式
-        const getOptionClass = (opt) => {
-          const isSelected = userSelection.value.includes(opt);
-
-          // 提交后的样式逻辑
-          if (hasSubmitted.value && isObjective.value) {
-            // 获取标准答案的前两个字用于判断 (兼容 "正确" "错误" "A" "B" 等)
-            const cleanAnswer = normalizeText(currentQuestion.value.answer);
-
-            // 判断逻辑：
-            // 1. 如果是选择题，看答案是否包含该选项字母
-            // 2. 如果是辨析题，看答案字符串是否以该选项(正确/错误)开头
-            let isStd = false;
-            if (isChoice.value) {
-              const pureLetters = cleanAnswer.replace(/[^A-Za-z]/g, "").toUpperCase();
-              isStd = pureLetters.includes(opt);
-            } else if (isJudgment.value) {
-              const std = parseJudgmentAnswer(cleanAnswer);
-              // 比如 opt="错误", answer="答：错误。xxxx" -> 解析为“错误”
-              isStd = std ? std === opt : cleanAnswer.startsWith(opt);
+            if (authForm.value.password.length < 6) {
+              authError.value = "密码长度至少为 6 位";
+              return;
             }
 
-            const isUser = isSelected;
+            authLoading.value = true;
+            authError.value = "";
 
-            if (isStd) return "bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500 shadow-md ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-[1.02] z-10";
-            if (isUser && !isStd) return "bg-rose-500 dark:bg-rose-600 text-white border-rose-600 dark:border-rose-500 ring-2 ring-rose-200 dark:ring-rose-900/50";
-            return "bg-slate-100 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500 border-transparent opacity-60";
-          }
-
-          // 提交前的选中样式
-          if (isSelected) return "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500 scale-[1.02] shadow-sm z-10";
-          return "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500";
-        };
-
-        // 修改 submitAnswer 处理辨析题的判分逻辑
-        const submitAnswer = () => {
-          if (isObjective.value && userSelection.value.length === 0) return;
-          const qid = currentQuestion.value.id;
-          const prev = qid ? attempts.value[qid] : null;
-          if (prev && prev.graded) {
-            // 已经判过分的题目不重复计分/不重复上报错题
-            hasSubmitted.value = true;
-            return;
-          }
-          hasSubmitted.value = true;
-
-          if (isObjective.value) {
-            if (isChoice.value) {
-              // 原有的选择题逻辑
-              const uAns = [...userSelection.value].sort().join("").toUpperCase();
-              const sAns = currentQuestion.value.answer
-                .replace(/[^A-Za-z]/g, "")
-                .toUpperCase()
-                .split("")
-                .sort()
-                .join("");
-              isCorrect.value = uAns === sAns;
-            } else if (isJudgment.value) {
-              // 新增：辨析题逻辑
-              const uAns = userSelection.value[0]; // 用户选的 "正确" 或 "错误"
-              const dbAns = normalizeText(currentQuestion.value.answer);
-              const std = parseJudgmentAnswer(dbAns);
-
-              // 优先用解析出的“正确/错误”判分；解析失败则回退到旧逻辑
-              isCorrect.value = std ? std === uAns : dbAns.startsWith(uAns);
-            }
-
-            if (!isMemorizeMode.value) {
-              // 触发全网易错题上报 (仅当存在有效的题目ID且不是背题模式时)
-              if (qid) {
-                reportToGlobalStats(qid, isCorrect.value);
-              }
-
-              if (isCorrect.value) {
-                stats.value.correct++;
+            try {
+              if (authMode.value === "login") {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                  email: authForm.value.email,
+                  password: authForm.value.password,
+                });
+                if (error) throw error;
               } else {
-                stats.value.wrong++;
-                reportError(qid, true);
+                const { data, error } = await supabaseClient.auth.signUp({
+                  email: authForm.value.email,
+                  password: authForm.value.password,
+                });
+                if (error) throw error;
+                alert("注册成功！系统已自动为您登录。");
               }
+              showAuth.value = false;
+            } catch (error) {
+              console.error("Auth error:", error);
+              // 提供人性化的中文错误提示
+              if (error.message.includes("Invalid login credentials")) {
+                authError.value = "邮箱或密码错误";
+              } else if (error.message.includes("already registered")) {
+                authError.value = "该邮箱已被注册，请直接登录";
+              } else {
+                authError.value = error.message || "操作失败，请重试";
+              }
+            } finally {
+              authLoading.value = false;
+            }
+          };
+
+          const logout = async () => {
+            if (supabaseClient) {
+              await supabaseClient.auth.signOut();
+              // 退出登录时，清空本地记录的刷题进度和打卡记录，避免污染下一个登录的账号
+              userProgress.value = { tags: {}, error_counts: {}, notes: {}, reported_questions: {} };
+              localStorage.removeItem(LOCAL_STORAGE_KEY);
+              mergeProgressToQuestions();
+            }
+          };
+
+          const deleteAccount = async () => {
+            if (!currentUser.value || !supabaseClient) return;
+
+            try {
+              isGlobalLoading.value = true;
+              const { error } = await supabaseClient.rpc('delete_user');
+              if (error) throw error;
+
+              localStorage.removeItem(LOCAL_STORAGE_KEY);
+              alert("账号已成功注销并清除所有数据。");
+              showAccountModal.value = false;
+              cancelDelete();
+              await logout();
+            } catch (err) {
+              console.error("注销账号失败:", err);
+              if (err.message && err.message.includes('schema cache')) {
+                alert("注销失败：数据库接口尚未就绪。\n\n解决方案：请回到 Supabase 的 SQL Editor 运行以下命令刷新缓存：\nNOTIFY pgrst, reload schema;");
+              } else {
+                alert("注销账号失败: " + (err.message || "未知错误"));
+              }
+            } finally {
+              isGlobalLoading.value = false;
+            }
+          };
+
+          const showAccountModal = ref(false);
+          const showUserMenu = ref(false);
+          const isDeletingAccount = ref(false);
+          const deleteCountdown = ref(5);
+          let countdownTimer = null;
+
+          const startDeleteCountdown = () => {
+            isDeletingAccount.value = true;
+            deleteCountdown.value = 5;
+            countdownTimer = setInterval(() => {
+              deleteCountdown.value--;
+              if (deleteCountdown.value <= 0) {
+                clearInterval(countdownTimer);
+              }
+            }, 1000);
+          };
+
+          const cancelDelete = () => {
+            isDeletingAccount.value = false;
+            deleteCountdown.value = 5;
+            if (countdownTimer) clearInterval(countdownTimer);
+          };
+
+          // --- 1. 状态变量 ---
+          const allQuestions = ref([]);
+          const userProgress = ref({ tags: {}, error_counts: {}, notes: {}, reported_questions: {} });
+
+          const status = ref("setup");
+          const config = ref({ chapters: [], types: [] });
+          const queue = ref([]);
+          const currentIndex = ref(0);
+
+          // 筛选设置
+          const selectedChapters = ref([]);
+          const selectedTypes = ref([]);
+          const mode = ref("sequence");
+          const isMemorizeMode = ref(false); // 新增：全局背题模式开关
+          const randomCount = ref(20);
+          const mistakeMinCount = ref(1);
+          const globalMistakeMinRate = ref(20);
+
+          // Mode labels for display
+          const modeLabels = {
+            sequence: '顺序练习', random: '随机抽题', mistake: '错题巩固',
+            global_mistake: '全网易错', star: '星标练习', key: '重点练习', hard: '难记练习'
+          };
+
+          // Type icon mapping
+          const getTypeIcon = (type) => {
+            const iconMap = {
+              '单项选择题': '◉', '多项选择题': '▦',
+              '辨析题': '⚖', '简答题': '✍',
+              '材料分析题': '📊', '论述题': '📃'
+            };
+            return iconMap[type] || '❓';
+          };
+
+          // 答题状态
+          const userSelection = ref([]);
+          const userInputText = ref("");
+          const hasSubmitted = ref(false);
+          const isCorrect = ref(false);
+          const subjectiveStatus = ref("pending");
+          const showErrorCount = ref(false);
+          const textarea = ref(null);
+
+          // 笔记相关
+          const showNote = ref(false);
+          const noteContent = ref("");
+          const saveBtnText = ref("保存笔记");
+          const noteTab = ref('private');
+          const shareToPublic = ref(false);
+          const publicNotes = ref([]);
+          const isLoadingPublicNotes = ref(false);
+
+          // 统计数据
+          const stats = ref({ correct: 0, wrong: 0 });
+          const attempts = ref({});
+
+          let syncTimeout = null;
+          const saveProgress = () => {
+            // 更新本地变动时间戳，用于多端同步合并比对
+            userProgress.value.last_updated = Date.now();
+
+            // 1. 本地存储 (永远最快响应)
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+
+            // 2. 云端同步 (如果有账号登录，加入防抖推送到云端)
+            if (currentUser.value && supabaseClient) {
+              clearTimeout(syncTimeout);
+              syncTimeout = setTimeout(async () => {
+                try {
+                  const { error } = await supabaseClient.from("user_progress").upsert(
+                    {
+                      user_id: currentUser.value.id,
+                      progress_data: userProgress.value,
+                      updated_at: new Date().toISOString(),
+                    },
+                    { onConflict: "user_id" },
+                  ); // 使用 user_id 作为冲突主键
+                  if (error) console.error("云端同步失败:", error);
+                  else console.log("☁️ 进度已同步至云端");
+                } catch (e) {
+                  console.error("云端同步异常:", e);
+                }
+              }, 1500); // 1.5秒防抖，避免频繁打字发请求
+            }
+          };
+
+          // 【新增】：监听页面隐藏或卸载，如果有没发出的同步请求，立刻发出
+          const flushSync = () => {
+            if (syncTimeout && currentUser.value && supabaseClient) {
+              clearTimeout(syncTimeout);
+              syncTimeout = null;
+              supabaseClient.from("user_progress").upsert(
+                {
+                  user_id: currentUser.value.id,
+                  progress_data: userProgress.value,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "user_id" },
+              ).then();
+            }
+          };
+
+          onMounted(() => {
+            document.addEventListener("visibilitychange", () => {
+              if (document.visibilityState === "hidden") flushSync();
+            });
+            window.addEventListener("beforeunload", flushSync);
+          });
+
+          // 监听登录状态变化，一登录就去拉取云端数据
+          watch(currentUser, async (newUser) => {
+            if (newUser && supabaseClient) {
+              try {
+                const { data, error } = await supabaseClient.from("user_progress").select("progress_data").eq("user_id", newUser.id).maybeSingle(); // 确保只查自己那条，没数据也不报错
+
+                if (data && data.progress_data) {
+                  const cloudData = data.progress_data;
+                  const cloudTimestamp = cloudData.last_updated || 0;
+                  const localTimestamp = userProgress.value.last_updated || 0;
+
+                  if (cloudTimestamp >= localTimestamp) {
+                    // 云端数据比本地新，覆盖本地并刷新视图
+                    userProgress.value = cloudData;
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
+                    mergeProgressToQuestions();
+                    console.log("✅ 成功拉取并应用最新云端进度");
+                  } else {
+                    // 本地数据比云端新，触发一次往云端的推送
+                    console.log("⬆️ 发现本地进度更新，正在同步覆盖云端数据");
+                    saveProgress();
+                  }
+                } else {
+                  // 如果云端还没数据，把本地可能已存在的进度推上去
+                  if (Object.keys(userProgress.value.tags || {}).length > 0 || Object.keys(userProgress.value.error_counts || {}).length > 0) {
+                    console.log("⬆️ 云端无数据，同步本地进度至云端");
+                    saveProgress();
+                  }
+                }
+              } catch (err) {
+                console.error("获取云端数据失败:", err);
+              }
+            }
+          });
+
+          // --- 3. 计算属性 ---
+          const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
+
+          // 判断是否为纯选择题 (显示 A-E)
+          const isChoice = computed(() => {
+            const t = currentQuestion.value.type;
+            return t && t.includes("选择");
+          });
+
+          const hasOptionE = computed(() => {
+            if (!isChoice.value) return false;
+            if (currentQuestion.value.options && currentQuestion.value.options['E']) return true;
+            const ans = currentQuestion.value?.answer || "";
+            return ans.includes("E") || ans.includes("e") || ans.includes("Ｅ") || ans.includes("ｅ");
+          });
+
+          const hasOptionF = computed(() => {
+            if (!isChoice.value) return false;
+            if (currentQuestion.value.options && currentQuestion.value.options['F']) return true;
+            const ans = currentQuestion.value?.answer || "";
+            return ans.includes("F") || ans.includes("f") || ans.includes("Ｆ") || ans.includes("ｆ");
+          });
+          // 判断是否为辨析或判断题 (显示 正确/错误)
+          const isJudgment = computed(() => {
+            const t = currentQuestion.value.type;
+            return t && (t.includes("辨析") || t.includes("判断"));
+          });
+
+          // isObjective 保持为 true，用于控制显示按钮区还是文本框区
+          const isObjective = computed(() => {
+            return isChoice.value || isJudgment.value;
+          });
+
+          const isMultiSelect = computed(() => {
+            const t = currentQuestion.value.type;
+            return t && (t.includes("多项") || t.includes("不定项"));
+          });
+
+          const progressPercent = computed(() => {
+            if (queue.value.length === 0) return 0;
+            return ((currentIndex.value + 1) / queue.value.length) * 100;
+          });
+
+          const resultClass = computed(() => {
+            if (isMemorizeMode.value) return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50";
+            if (!isObjective.value) return "bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50";
+            return isCorrect.value ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50" : "bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50";
+          });
+
+          const resultTitle = computed(() => {
+            if (isMemorizeMode.value) return "📝 参考答案与解析";
+            if (!isObjective.value) return "请自我对照";
+            return isCorrect.value ? "✅ 回答正确" : "❌ 回答错误";
+          });
+
+          const accuracy = computed(() => {
+            const totalDone = stats.value.correct + stats.value.wrong;
+            if (totalDone === 0) return 0;
+            return ((stats.value.correct / totalDone) * 100).toFixed(1);
+          });
+
+          const normalizeText = (v) => {
+            if (v === null || v === undefined) return "";
+            return String(v)
+              .replace(/\uFEFF/g, "")
+              .trim();
+          };
+
+          const normalizeJudgmentToken = (token) => {
+            if (!token) return null;
+            if (token === "正确" || token === "对" || token === "√") return "正确";
+            if (token === "错误" || token === "错" || token === "×" || token === "✗") return "错误";
+            return null;
+          };
+
+          // 从答案文本中提取“正确/错误”，兼容："答：错误。..." / "错误" / "正确。..." / "对/错/√/×" 等
+          const parseJudgmentAnswer = (rawAnswer) => {
+            const s = normalizeText(rawAnswer);
+            if (!s) return null;
+
+            // 强匹配：只在开头附近找结论，避免解析段落里出现“正确/错误”干扰
+            const head = s.match(
+              /^\s*(?:[“"'‘’\[\]（）()【】]|【[^】]*】)*\s*(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)\s*[：:\-－—]?\s*)?(正确|错误|对|错|√|×|✗)/,
+            );
+            if (head) return normalizeJudgmentToken(head[1]);
+
+            // 去空白后再试一次（处理“答： 错误 ...”这类）
+            const compact = s.replace(/\s+/g, "");
+            const compactHead = compact.match(/^(?:【[^】]*】)?(?:(?:答(?:案)?|参考答案|答案|判断|结论|解析)[：:\-－—]?)?(正确|错误|对|错|√|×|✗)/);
+            if (compactHead) return normalizeJudgmentToken(compactHead[1]);
+
+            // 弱匹配：仅在很短的前缀里找“正确/错误”
+            const early = compact.slice(0, 12);
+            const earlyHit = early.match(/正确|错误/);
+            if (earlyHit) return earlyHit[0];
+
+            // 兜底：只看第一句，取更靠前的那个
+            const firstSentence = s.split(/[\r\n。.!?？；;]/)[0];
+            const idxCorrect = firstSentence.indexOf("正确");
+            const idxWrong = firstSentence.indexOf("错误");
+            if (idxCorrect === -1 && idxWrong === -1) return null;
+            if (idxCorrect !== -1 && idxWrong === -1) return "正确";
+            if (idxWrong !== -1 && idxCorrect === -1) return "错误";
+            return idxCorrect < idxWrong ? "正确" : "错误";
+          };
+
+          // --- 4. 方法 ---
+
+          const toggleSelection = (list, item) => {
+            const idx = list.indexOf(item);
+            if (idx > -1) list.splice(idx, 1);
+            else list.push(item);
+          };
+
+          const selectAllChapters = () => {
+            if (selectedChapters.value.length === config.value.chapters.length) {
+              selectedChapters.value = [];
+            } else {
+              selectedChapters.value = [...config.value.chapters];
+            }
+          };
+
+          const isStartingQuiz = ref(false);
+
+          const startQuiz = async (memorize = false) => {
+            isMemorizeMode.value = memorize; // 设置当前模式
+            const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
+
+            let filtered = allQuestions.value.filter((q) => selectedChapters.value.includes(q.chapter) && selectedTypes.value.includes(q.type));
+
+            if (mode.value === "global_mistake") {
+              if (!supabaseClient) {
+                showToast("未连接到云端，无法获取全网易错题。", "error");
+                return;
+              }
+              isStartingQuiz.value = true;
+              try {
+                const safeGlobalMinRate = Math.max(0, Math.min(100, Number(globalMistakeMinRate.value || 0))) / 100;
+
+                // 调用 RPC 获取易错榜单 (设置 p_min_attempts: 10 确保样本量)
+                const { data, error } = await supabaseClient.rpc('get_high_error_questions', {
+                  p_min_attempts: 10,
+                  p_limit: 50,
+                  p_min_error_rate: safeGlobalMinRate
+                });
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                  showToast("由于项目处于早期阶段，目前使用人数不多，暂时无法收集到足够多的有效易错题数据，或没有符合条件的题目。", "warning");
+                  isStartingQuiz.value = false;
+                  return;
+                }
+
+                // 根据返回的 question_id 提取本地题目，并按错误率排序
+                const globalIds = data.map(item => item.question_id);
+                // 还要受当前勾选的章节和题型限制
+                filtered = filtered.filter(q => globalIds.includes(q.id));
+
+                // 将错误率数据挂载到题目对象上，方便（可选）在界面展示，同时用于排序
+                filtered.forEach(q => {
+                  const stats = data.find(d => d.question_id === q.id);
+                  if (stats) {
+                    q.global_error_rate = stats.error_rate;
+                  }
+                });
+
+                // 按错误率倒序排列
+                filtered.sort((a, b) => (b.global_error_rate || 0) - (a.global_error_rate || 0));
+
+                if (filtered.length === 0) {
+                  showToast("全网易错榜单中，没有属于您当前勾选章节/题型的题目。", "warning");
+                  isStartingQuiz.value = false;
+                  return;
+                }
+
+              } catch (err) {
+                console.error("获取全网易错题失败:", err);
+                showToast("获取全网易错题失败，请检查网络或配置。", "error");
+                isStartingQuiz.value = false;
+                return;
+              }
+            } else if (mode.value === "mistake") {
+              filtered = filtered.filter((q) => (q.error_count || 0) >= safeMistakeMinCount);
+              filtered.sort((a, b) => (b.error_count || 0) - (a.error_count || 0));
+            } else if (["star", "key", "hard"].includes(mode.value)) {
+              const tagMap = {
+                star: "tag_star",
+                key: "tag_key",
+                hard: "tag_hard",
+              };
+              const tagField = tagMap[mode.value];
+              filtered = filtered.filter((q) => !!q[tagField]);
+            } else if (mode.value === "random") {
+              for (let i = filtered.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+              }
+              const count = Number(randomCount.value) || 20;
+              if (count < filtered.length) {
+                filtered = filtered.slice(0, count);
+              }
+            }
+
+            if (filtered.length === 0) {
+              showToast("没有找到符合条件的题目", "info");
+              return;
+            }
+            queue.value = filtered;
+            currentIndex.value = 0;
+            stats.value = { correct: 0, wrong: 0 };
+            attempts.value = {};
+            loadQuestionState();
+            status.value = "quiz";
+            isStartingQuiz.value = false; // 成功进入答题后，重置按钮状态
+          };
+
+          const restartQuiz = () => {
+            startQuiz(isMemorizeMode.value); // 保持重启时的模式一致
+          };
+
+          const computeGraded = () => {
+            if (isObjective.value) return hasSubmitted.value;
+            return hasSubmitted.value && subjectiveStatus.value !== "pending";
+          };
+
+          const storeCurrentAttempt = () => {
+            const q = currentQuestion.value;
+            if (!q || !q.id) return;
+            attempts.value[q.id] = {
+              userSelection: Array.isArray(userSelection.value) ? [...userSelection.value] : [],
+              userInputText: userInputText.value || "",
+              hasSubmitted: !!hasSubmitted.value,
+              isCorrect: !!isCorrect.value,
+              subjectiveStatus: subjectiveStatus.value || "pending",
+              graded: computeGraded(),
+            };
+          };
+
+          const resetQuestionState = () => {
+            userSelection.value = [];
+            userInputText.value = "";
+            hasSubmitted.value = false;
+            isCorrect.value = false;
+            subjectiveStatus.value = "pending";
+            showErrorCount.value = false;
+            showNote.value = false;
+            noteTab.value = 'private'; // 修复背题模式下广场空白的Bug：切题时重置为私有笔记，确保下次点开广场能触发请求
+            noteContent.value = currentQuestion.value.note || "";
+            saveBtnText.value = "保存笔记";
+            shareToPublic.value = false;
+            publicNotes.value = [];
+            showAllNotes.value = false;
+            nextTick(() => {
+              if (textarea.value) textarea.value.style.height = "auto";
+            });
+          };
+
+          const loadQuestionState = () => {
+            const q = currentQuestion.value;
+            if (!q || !q.id) {
+              resetQuestionState();
+              return;
+            }
+            const attempt = attempts.value[q.id];
+            if (!attempt) {
+              resetQuestionState();
+              if (isMemorizeMode.value) {
+                hasSubmitted.value = true;
+                showNote.value = true;
+              }
+              return;
+            }
+            userSelection.value = Array.isArray(attempt.userSelection) ? [...attempt.userSelection] : [];
+            userInputText.value = attempt.userInputText || "";
+            hasSubmitted.value = !!attempt.hasSubmitted || isMemorizeMode.value;
+            isCorrect.value = !!attempt.isCorrect;
+            subjectiveStatus.value = attempt.subjectiveStatus || "pending";
+            showErrorCount.value = false;
+            showNote.value = isMemorizeMode.value || false;
+            noteContent.value = currentQuestion.value.note || "";
+            saveBtnText.value = "保存笔记";
+            shareToPublic.value = false;
+            publicNotes.value = [];
+            showAllNotes.value = false;
+            nextTick(() => {
+              if (textarea.value) textarea.value.style.height = "auto";
+            });
+          };
+
+          const autoResize = (e) => {
+            e.target.style.height = "auto";
+            e.target.style.height = e.target.scrollHeight + "px";
+          };
+
+          const selectOption = (opt) => {
+            if (hasSubmitted.value || isMemorizeMode.value) return; // ✅ 背题模式下禁止点击选项
+            if (isMultiSelect.value) {
+              const idx = userSelection.value.indexOf(opt);
+              if (idx > -1) userSelection.value.splice(idx, 1);
+              else userSelection.value.push(opt);
+            } else {
+              userSelection.value = [opt];
+            }
+          };
+
+          // 修改 getOptionClass 以适应 "正确/错误" 按钮的样式
+          const getOptionClass = (opt) => {
+            const isSelected = userSelection.value.includes(opt);
+
+            // 提交后的样式逻辑
+            if (hasSubmitted.value && isObjective.value) {
+              // 获取标准答案的前两个字用于判断 (兼容 "正确" "错误" "A" "B" 等)
+              const cleanAnswer = normalizeText(currentQuestion.value.answer);
+
+              // 判断逻辑：
+              // 1. 如果是选择题，看答案是否包含该选项字母
+              // 2. 如果是辨析题，看答案字符串是否以该选项(正确/错误)开头
+              let isStd = false;
+              if (isChoice.value) {
+                const pureLetters = cleanAnswer.replace(/[^A-Za-z]/g, "").toUpperCase();
+                isStd = pureLetters.includes(opt);
+              } else if (isJudgment.value) {
+                const std = parseJudgmentAnswer(cleanAnswer);
+                // 比如 opt="错误", answer="答：错误。xxxx" -> 解析为“错误”
+                isStd = std ? std === opt : cleanAnswer.startsWith(opt);
+              }
+
+              const isUser = isSelected;
+
+              if (isStd) return "bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500 shadow-md ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-[1.02] z-10";
+              if (isUser && !isStd) return "bg-rose-500 dark:bg-rose-600 text-white border-rose-600 dark:border-rose-500 ring-2 ring-rose-200 dark:ring-rose-900/50";
+              return "bg-slate-100 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500 border-transparent opacity-60";
+            }
+
+            // 提交前的选中样式
+            if (isSelected) return "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500 scale-[1.02] shadow-sm z-10";
+            return "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500";
+          };
+
+          // 修改 submitAnswer 处理辨析题的判分逻辑
+          const submitAnswer = () => {
+            if (isObjective.value && userSelection.value.length === 0) return;
+            const qid = currentQuestion.value.id;
+            const prev = qid ? attempts.value[qid] : null;
+            if (prev && prev.graded) {
+              // 已经判过分的题目不重复计分/不重复上报错题
+              hasSubmitted.value = true;
+              return;
+            }
+            hasSubmitted.value = true;
+
+            if (isObjective.value) {
+              if (isChoice.value) {
+                // 原有的选择题逻辑
+                const uAns = [...userSelection.value].sort().join("").toUpperCase();
+                const sAns = currentQuestion.value.answer
+                  .replace(/[^A-Za-z]/g, "")
+                  .toUpperCase()
+                  .split("")
+                  .sort()
+                  .join("");
+                isCorrect.value = uAns === sAns;
+              } else if (isJudgment.value) {
+                // 新增：辨析题逻辑
+                const uAns = userSelection.value[0]; // 用户选的 "正确" 或 "错误"
+                const dbAns = normalizeText(currentQuestion.value.answer);
+                const std = parseJudgmentAnswer(dbAns);
+
+                // 优先用解析出的“正确/错误”判分；解析失败则回退到旧逻辑
+                isCorrect.value = std ? std === uAns : dbAns.startsWith(uAns);
+              }
+
+              if (!isMemorizeMode.value) {
+                // 触发全网易错题上报 (仅当存在有效的题目ID且不是背题模式时)
+                if (qid) {
+                  reportToGlobalStats(qid, isCorrect.value);
+                }
+
+                if (isCorrect.value) {
+                  stats.value.correct++;
+                } else {
+                  stats.value.wrong++;
+                  reportError(qid, true);
+                }
+              }
+
+              if (qid) {
+                storeCurrentAttempt();
+                attempts.value[qid].graded = true;
+              }
+            }
+          };
+
+          const giveUpAndShowAnswer = () => {
+            if (hasSubmitted.value) return;
+            if (currentQuestion.value.id) {
+              stats.value.wrong++;
+              reportError(currentQuestion.value.id, true);
+              hasSubmitted.value = true;
+              isCorrect.value = false;
+
+              storeCurrentAttempt();
+              attempts.value[currentQuestion.value.id].graded = true;
+            }
+          };
+
+          const markSubjective = (correct) => {
+            if (subjectiveStatus.value !== "pending" || isMemorizeMode.value) return;
+
+            const qid = currentQuestion.value.id;
+            const prev = qid ? attempts.value[qid] : null;
+            if (prev && prev.graded) return;
+
+            subjectiveStatus.value = correct ? "correct" : "wrong";
+
+            if (correct) {
+              stats.value.correct++;
+            } else {
+              stats.value.wrong++;
+              reportError(currentQuestion.value.id, true);
             }
 
             if (qid) {
               storeCurrentAttempt();
               attempts.value[qid].graded = true;
             }
-          }
-        };
+          };
 
-        const giveUpAndShowAnswer = () => {
-          if (hasSubmitted.value) return;
-          if (currentQuestion.value.id) {
-            stats.value.wrong++;
-            reportError(currentQuestion.value.id, true);
-            hasSubmitted.value = true;
-            isCorrect.value = false;
+          const tagButtonClass = (enabled, kind) => {
+            if (enabled) {
+              if (kind === "star") return "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-400 dark:border-amber-500/50 shadow-sm ring-2 ring-amber-400/50 scale-[1.05]";
+              if (kind === "key") return "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-400 dark:border-indigo-500/50 shadow-sm ring-2 ring-indigo-400/50 scale-[1.05]";
+              if (kind === "hard") return "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-400 dark:border-rose-500/50 shadow-sm ring-2 ring-rose-400/50 scale-[1.05]";
+              return "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-400 dark:border-slate-500";
+            }
+            return "bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700";
+          };
 
-            storeCurrentAttempt();
-            attempts.value[currentQuestion.value.id].graded = true;
-          }
-        };
+          const toggleTag = (tagField) => {
+            const q = currentQuestion.value;
+            if (!q || !q.id) return;
+            if (!["tag_star", "tag_key", "tag_hard"].includes(tagField)) return;
 
-        const markSubjective = (correct) => {
-          if (subjectiveStatus.value !== "pending" || isMemorizeMode.value) return;
+            const newVal = !Boolean(q[tagField]);
+            q[tagField] = newVal;
 
-          const qid = currentQuestion.value.id;
-          const prev = qid ? attempts.value[qid] : null;
-          if (prev && prev.graded) return;
-
-          subjectiveStatus.value = correct ? "correct" : "wrong";
-
-          if (correct) {
-            stats.value.correct++;
-          } else {
-            stats.value.wrong++;
-            reportError(currentQuestion.value.id, true);
-          }
-
-          if (qid) {
-            storeCurrentAttempt();
-            attempts.value[qid].graded = true;
-          }
-        };
-
-        const tagButtonClass = (enabled, kind) => {
-          if (enabled) {
-            if (kind === "star") return "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-400 dark:border-amber-500/50 shadow-sm ring-2 ring-amber-400/50 scale-[1.05]";
-            if (kind === "key") return "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-400 dark:border-indigo-500/50 shadow-sm ring-2 ring-indigo-400/50 scale-[1.05]";
-            if (kind === "hard") return "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-400 dark:border-rose-500/50 shadow-sm ring-2 ring-rose-400/50 scale-[1.05]";
-            return "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-400 dark:border-slate-500";
-          }
-          return "bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700";
-        };
-
-        const toggleTag = (tagField) => {
-          const q = currentQuestion.value;
-          if (!q || !q.id) return;
-          if (!["tag_star", "tag_key", "tag_hard"].includes(tagField)) return;
-
-          const newVal = !Boolean(q[tagField]);
-          q[tagField] = newVal;
-
-          if (!userProgress.value.tags[q.id]) userProgress.value.tags[q.id] = {};
-          userProgress.value.tags[q.id][tagField] = newVal;
-          saveProgress();
-        };
-
-        const reportError = (id, isWrong) => {
-          if (!isWrong) return;
-          const q = allQuestions.value.find((x) => x.id === id);
-          if (q) {
-            q.error_count = (q.error_count || 0) + 1;
-            userProgress.value.error_counts[id] = q.error_count;
+            if (!userProgress.value.tags[q.id]) userProgress.value.tags[q.id] = {};
+            userProgress.value.tags[q.id][tagField] = newVal;
             saveProgress();
-          }
-        };
+          };
 
-        // --- 【新增：全网易错题上报函数】 ---
-        const reportToGlobalStats = async (questionId, isCorrect) => {
-          // 1. 如果没登录，或者这道题已经在本地小本本上记过了，就直接跳过（前端防抖）
-          if (!currentUser.value || userProgress.value.reported_questions[questionId]) {
-            console.log(`[全网易错] 题目 ${questionId} 已被拦截上报。原因: ${!currentUser.value ? '未登录' : '本地已打卡'}`);
-            return;
-          }
+          const reportError = (id, isWrong) => {
+            if (!isWrong) return;
+            const q = allQuestions.value.find((x) => x.id === id);
+            if (q) {
+              q.error_count = (q.error_count || 0) + 1;
+              userProgress.value.error_counts[id] = q.error_count;
+              saveProgress();
+            }
+          };
 
-          console.log(`[全网易错] 正在为用户 ${currentUser.value.email} 上报题目 ${questionId}, 结果: ${isCorrect ? '正确' : '错误'}`);
-
-          try {
-            // 2. 调用我们在 Supabase 中写好的安全 RPC
-            const { error } = await supabaseClient.rpc('report_question_attempt', {
-              p_question_id: questionId,
-              p_is_correct: isCorrect
-            });
-
-            if (error) {
-              console.error("[全网易错] 后端 RPC 抛出错误:", error);
-              throw error;
+          // --- 【新增：全网易错题上报函数】 ---
+          const reportToGlobalStats = async (questionId, isCorrect) => {
+            // 1. 如果没登录，或者这道题已经在本地小本本上记过了，就直接跳过（前端防抖）
+            if (!currentUser.value || userProgress.value.reported_questions[questionId]) {
+              console.log(`[全网易错] 题目 ${questionId} 已被拦截上报。原因: ${!currentUser.value ? '未登录' : '本地已打卡'}`);
+              return;
             }
 
-            // 3. 上报成功后，在小本本里打个勾
-            userProgress.value.reported_questions[questionId] = true;
-            console.log(`[全网易错] 上报成功！已记录到本地防刷本。`);
+            console.log(`[全网易错] 正在为用户 ${currentUser.value.email} 上报题目 ${questionId}, 结果: ${isCorrect ? '正确' : '错误'}`);
 
-          } catch (err) {
-            console.error("[全网易错] 上报流程失败:", err);
-          }
-        };
+            try {
+              // 2. 调用我们在 Supabase 中写好的安全 RPC
+              const { error } = await supabaseClient.rpc('report_question_attempt', {
+                p_question_id: questionId,
+                p_is_correct: isCorrect
+              });
 
-        const saveNote = async () => {
-          saveBtnText.value = "保存中...";
-          const q = currentQuestion.value;
-          if (q) {
-            q.note = noteContent.value;
-            userProgress.value.notes[q.id] = noteContent.value;
-            saveProgress();
+              if (error) {
+                console.error("[全网易错] 后端 RPC 抛出错误:", error);
+                throw error;
+              }
 
-            // 处理公开共享功能
-            if (shareToPublic.value && currentUser.value && supabaseClient) {
-              try {
-                // 查询是否已经分享过这条笔记
-                const { data: existing } = await supabaseClient
-                  .from('public_notes')
-                  .select('id')
-                  .eq('question_id', q.id)
+              // 3. 上报成功后，在小本本里打个勾
+              userProgress.value.reported_questions[questionId] = true;
+              console.log(`[全网易错] 上报成功！已记录到本地防刷本。`);
+
+            } catch (err) {
+              console.error("[全网易错] 上报流程失败:", err);
+            }
+          };
+
+          const saveNote = async () => {
+            saveBtnText.value = "保存中...";
+            const q = currentQuestion.value;
+            if (q) {
+              q.note = noteContent.value;
+              userProgress.value.notes[q.id] = noteContent.value;
+              saveProgress();
+
+              // 处理公开共享功能
+              if (shareToPublic.value && currentUser.value && supabaseClient) {
+                try {
+                  // 查询是否已经分享过这条笔记
+                  const { data: existing } = await supabaseClient
+                    .from('public_notes')
+                    .select('id')
+                    .eq('question_id', q.id)
+                    .eq('user_id', currentUser.value.id)
+                    .single();
+
+                  if (existing) {
+                    await supabaseClient.from('public_notes').update({ content: noteContent.value }).eq('id', existing.id);
+                  } else {
+                    await supabaseClient.from('public_notes').insert({
+                      question_id: q.id,
+                      user_id: currentUser.value.id,
+                      user_email: currentUser.value.email,
+                      content: noteContent.value
+                    });
+                  }
+                } catch (err) {
+                  if (err.code !== "PGRST116") {
+                    console.error("发布公开笔记失败:", err);
+                  }
+                }
+              }
+
+              saveBtnText.value = "✅ 已保存";
+              setTimeout(() => {
+                saveBtnText.value = "保存笔记";
+              }, 2000);
+            } else {
+              saveBtnText.value = "保存失败";
+            }
+          };
+
+          const showAllNotes = ref(false);
+
+          const fetchPublicNotes = async () => {
+            const q = currentQuestion.value;
+            if (!q || !q.id || !supabaseClient) return;
+
+            isLoadingPublicNotes.value = true;
+            try {
+              // 1. 获取公开笔记并按点赞数排序，然后按时间倒序
+              const { data, error } = await supabaseClient
+                .from('public_notes')
+                .select('*')
+                .eq('question_id', q.id)
+                .order('likes', { ascending: false })
+                .order('created_at', { ascending: false });
+
+              if (error) throw error;
+
+              // 2. 如果已登录，获取当前用户对这些笔记的点赞状态
+              let myLikes = new Set();
+              if (currentUser.value && data && data.length > 0) {
+                const noteIds = data.map(n => n.id);
+                const { data: likesData, error: likesError } = await supabaseClient
+                  .from('note_likes')
+                  .select('note_id')
                   .eq('user_id', currentUser.value.id)
-                  .single();
+                  .in('note_id', noteIds);
 
-                if (existing) {
-                  await supabaseClient.from('public_notes').update({ content: noteContent.value }).eq('id', existing.id);
-                } else {
-                  await supabaseClient.from('public_notes').insert({
-                    question_id: q.id,
-                    user_id: currentUser.value.id,
-                    user_email: currentUser.value.email,
-                    content: noteContent.value
-                  });
-                }
-              } catch (err) {
-                if (err.code !== "PGRST116") {
-                  console.error("发布公开笔记失败:", err);
+                if (!likesError && likesData) {
+                  myLikes = new Set(likesData.map(l => l.note_id));
                 }
               }
-            }
 
-            saveBtnText.value = "✅ 已保存";
-            setTimeout(() => {
-              saveBtnText.value = "保存笔记";
-            }, 2000);
-          } else {
-            saveBtnText.value = "保存失败";
-          }
-        };
+              // 3. 组合数据
+              publicNotes.value = (data || []).map(note => ({
+                ...note,
+                likes: note.likes || 0,
+                isLikedByMe: myLikes.has(note.id)
+              }));
 
-        const showAllNotes = ref(false);
-
-        const fetchPublicNotes = async () => {
-          const q = currentQuestion.value;
-          if (!q || !q.id || !supabaseClient) return;
-
-          isLoadingPublicNotes.value = true;
-          try {
-            // 1. 获取公开笔记并按点赞数排序，然后按时间倒序
-            const { data, error } = await supabaseClient
-              .from('public_notes')
-              .select('*')
-              .eq('question_id', q.id)
-              .order('likes', { ascending: false })
-              .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            // 2. 如果已登录，获取当前用户对这些笔记的点赞状态
-            let myLikes = new Set();
-            if (currentUser.value && data && data.length > 0) {
-              const noteIds = data.map(n => n.id);
-              const { data: likesData, error: likesError } = await supabaseClient
-                .from('note_likes')
-                .select('note_id')
-                .eq('user_id', currentUser.value.id)
-                .in('note_id', noteIds);
-
-              if (!likesError && likesData) {
-                myLikes = new Set(likesData.map(l => l.note_id));
+              // 看看自己有没有发过，如果有，勾选分享到解题广场
+              if (currentUser.value) {
+                const myShared = data.find(n => n.user_id === currentUser.value.id);
+                if (myShared) shareToPublic.value = true;
               }
+            } catch (err) {
+              console.error("加载公开笔记失败:", err);
+            } finally {
+              isLoadingPublicNotes.value = false;
+            }
+          };
+
+          const toggleLike = async (note) => {
+            if (!currentUser.value || !supabaseClient) {
+              alert("请先登录再进行点赞操作！");
+              return;
             }
 
-            // 3. 组合数据
-            publicNotes.value = (data || []).map(note => ({
-              ...note,
-              likes: note.likes || 0,
-              isLikedByMe: myLikes.has(note.id)
-            }));
+            // 乐观更新 UI
+            const originalLiked = note.isLikedByMe;
+            const originalLikes = note.likes;
 
-            // 看看自己有没有发过，如果有，勾选分享到解题广场
-            if (currentUser.value) {
-              const myShared = data.find(n => n.user_id === currentUser.value.id);
-              if (myShared) shareToPublic.value = true;
+            note.isLikedByMe = !originalLiked;
+            note.likes += note.isLikedByMe ? 1 : -1;
+
+            try {
+              const { data: currentStatus, error } = await supabaseClient
+                .rpc('toggle_note_like', { p_note_id: note.id });
+
+              if (error) throw error;
+
+              // 根据后端返回的真实状态进行校验/修正
+              // 如果 rpc 返回 true 表示最终状态是已点赞，false 表示未点赞
+              if (note.isLikedByMe !== currentStatus) {
+                note.isLikedByMe = currentStatus;
+                note.likes = originalLikes + (currentStatus ? 1 : (originalLiked ? -1 : 0));
+              }
+            } catch (err) {
+              console.error("点赞操作失败:", err);
+              // 发生错误，回滚 UI 状态
+              note.isLikedByMe = originalLiked;
+              note.likes = originalLikes;
+              alert("点赞失败，请稍后重试");
             }
-          } catch (err) {
-            console.error("加载公开笔记失败:", err);
-          } finally {
-            isLoadingPublicNotes.value = false;
-          }
-        };
+          };
 
-        const toggleLike = async (note) => {
-          if (!currentUser.value || !supabaseClient) {
-            alert("请先登录再进行点赞操作！");
-            return;
-          }
-
-          // 乐观更新 UI
-          const originalLiked = note.isLikedByMe;
-          const originalLikes = note.likes;
-
-          note.isLikedByMe = !originalLiked;
-          note.likes += note.isLikedByMe ? 1 : -1;
-
-          try {
-            const { data: currentStatus, error } = await supabaseClient
-              .rpc('toggle_note_like', { p_note_id: note.id });
-
-            if (error) throw error;
-
-            // 根据后端返回的真实状态进行校验/修正
-            // 如果 rpc 返回 true 表示最终状态是已点赞，false 表示未点赞
-            if (note.isLikedByMe !== currentStatus) {
-              note.isLikedByMe = currentStatus;
-              note.likes = originalLikes + (currentStatus ? 1 : (originalLiked ? -1 : 0));
+          const toggleNoteArea = () => {
+            showNote.value = !showNote.value;
+            if (showNote.value && noteTab.value === 'public') {
+              fetchPublicNotes();
             }
-          } catch (err) {
-            console.error("点赞操作失败:", err);
-            // 发生错误，回滚 UI 状态
-            note.isLikedByMe = originalLiked;
-            note.likes = originalLikes;
-            alert("点赞失败，请稍后重试");
-          }
-        };
+          };
 
-        const toggleNoteArea = () => {
-          showNote.value = !showNote.value;
-          if (showNote.value && noteTab.value === 'public') {
-            fetchPublicNotes();
-          }
-        };
+          watch(noteTab, (newVal) => {
+            if (newVal === 'public') fetchPublicNotes();
+          });
 
-        watch(noteTab, (newVal) => {
-          if (newVal === 'public') fetchPublicNotes();
-        });
+          const nextQuestion = () => {
+            storeCurrentAttempt();
+            if (currentIndex.value < queue.value.length - 1) {
+              currentIndex.value++;
+              loadQuestionState();
+            } else {
+              status.value = "result";
+            }
+          };
 
-        const nextQuestion = () => {
-          storeCurrentAttempt();
-          if (currentIndex.value < queue.value.length - 1) {
-            currentIndex.value++;
-            loadQuestionState();
-          } else {
-            status.value = "result";
-          }
-        };
+          const prevQuestion = () => {
+            storeCurrentAttempt();
+            if (currentIndex.value > 0) {
+              currentIndex.value--;
+              loadQuestionState();
+            }
+          };
 
-        const prevQuestion = () => {
-          storeCurrentAttempt();
-          if (currentIndex.value > 0) {
-            currentIndex.value--;
-            loadQuestionState();
-          }
-        };
+          return {
+            status,
+            config,
+            queue,
+            currentIndex,
+            selectedChapters,
+            selectedTypes,
+            mode,
+            isMemorizeMode,
+            randomCount,
+            mistakeMinCount,
+            globalMistakeMinRate,
+            currentQuestion,
+            userSelection,
+            userInputText,
+            hasSubmitted,
+            isCorrect,
+            isChoice,
+            isJudgment,
+            isObjective,
+            hasOptionE,
+            giveUpAndShowAnswer,
+            progressPercent,
+            getOptionClass,
+            selectOption,
+            submitAnswer,
+            toggleSelection,
+            selectAllChapters,
+            startQuiz,
+            isStartingQuiz,
+            nextQuestion,
+            prevQuestion,
+            restartQuiz,
+            showErrorCount,
+            resultClass,
+            resultTitle,
+            autoResize,
+            textarea,
+            subjectiveStatus,
+            markSubjective,
+            showNote,
+            noteContent,
+            saveNote,
+            saveBtnText,
+            toggleTag,
+            noteTab,
+            shareToPublic,
+            publicNotes,
+            showAllNotes,
+            isLoadingPublicNotes,
+            toggleLike,
+            toggleNoteArea,
+            deleteAccount,
+            showAccountModal,
+            showUserMenu,
+            isDeletingAccount,
+            deleteCountdown,
+            startDeleteCountdown,
+            cancelDelete,
+            tagButtonClass,
+            stats,
+            accuracy,
+            modeLabels,
+            getTypeIcon,
 
-        return {
-          status,
-          config,
-          queue,
-          currentIndex,
-          selectedChapters,
-          selectedTypes,
-          mode,
-          isMemorizeMode,
-          randomCount,
-          mistakeMinCount,
-          globalMistakeMinRate,
-          currentQuestion,
-          userSelection,
-          userInputText,
-          hasSubmitted,
-          isCorrect,
-          isChoice,
-          isJudgment,
-          isObjective,
-          hasOptionE,
-          giveUpAndShowAnswer,
-          progressPercent,
-          getOptionClass,
-          selectOption,
-          submitAnswer,
-          toggleSelection,
-          selectAllChapters,
-          startQuiz,
-          isStartingQuiz,
-          nextQuestion,
-          prevQuestion,
-          restartQuiz,
-          showErrorCount,
-          resultClass,
-          resultTitle,
-          autoResize,
-          textarea,
-          subjectiveStatus,
-          markSubjective,
-          showNote,
-          noteContent,
-          saveNote,
-          saveBtnText,
-          toggleTag,
-          noteTab,
-          shareToPublic,
-          publicNotes,
-          showAllNotes,
-          isLoadingPublicNotes,
-          toggleLike,
-          toggleNoteArea,
-          deleteAccount,
-          showAccountModal,
-          showUserMenu,
-          isDeletingAccount,
-          deleteCountdown,
-          startDeleteCountdown,
-          cancelDelete,
-          tagButtonClass,
-          stats,
-          accuracy,
-          modeLabels,
-          getTypeIcon,
+            // 暴露体验相关的变量和方法
+            isGlobalLoading,
+            isDark,
+            toggleDarkMode,
+            toastInfo,
+            showAnnouncement,
+            closeAnnouncement,
+            showUpdateLogs,
+            announcementsList,
+            currentAnnouncement,
 
-          // 暴露体验相关的变量和方法
-          isGlobalLoading,
-          isDark,
-          toggleDarkMode,
-          toastInfo,
-          showAnnouncement,
-          closeAnnouncement,
-          showUpdateLogs,
-          announcementsList,
-          currentAnnouncement,
-
-          // 暴露认证相关的变量和方法给模板
-          currentUser,
-          showAuth,
-          authMode,
-          authForm,
-          authError,
-          authLoading,
-          openAuthModal,
-          handleAuth,
-          logout,
-        };
-      },
-    }).mount("#app");
+            // 暴露认证相关的变量和方法给模板
+            currentUser,
+            showAuth,
+            authMode,
+            authForm,
+            authError,
+            authLoading,
+            openAuthModal,
+            handleAuth,
+            logout,
+          };
+        },
+      }).mount("#app");
+    });
   </script>
 </body>
 
