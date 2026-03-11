@@ -295,6 +295,32 @@
       <span class="text-gray-700 dark:text-gray-300 font-medium">加载数据中...</span>
     </div>
 
+    <!-- 📢 更新公告弹窗 (版本化，每次新公告递增版本号即可) -->
+    <div v-if="showAnnouncement"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+      <div
+        class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200/60 dark:border-slate-700/40">
+        <div class="text-center mb-5">
+          <span class="text-4xl">🎉</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">更新公告</h2>
+        </div>
+        <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <div
+            class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
+            <p class="font-bold text-indigo-700 dark:text-indigo-400 mb-1">📝 AI 笔记已上线！</p>
+            <p>现在所有题目都配备了 AI 自动生成的参考笔记，可在<strong>解题广场</strong>中查看。</p>
+          </div>
+          <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50">
+            <p class="font-bold text-amber-700 dark:text-amber-400 mb-1">⚠️ 温馨提示</p>
+            <p>AI 生成的内容可能存在错误，请结合教材自行辨别，仅供参考。</p>
+          </div>
+        </div>
+        <button @click="closeAnnouncement" class="mt-6 w-full btn-cta text-white font-bold py-3 rounded-2xl text-base">
+          我知道了 👍
+        </button>
+      </div>
+    </div>
+
     <!-- ✨ 顶部导航栏 (Redesigned) -->
     <div
       class="glass-nav sticky top-0 z-50 flex justify-between items-center mb-6 px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/40 transition-colors duration-300">
@@ -1041,10 +1067,12 @@
         const isGlobalLoading = ref(true);
         const isDark = ref(false);
         const showAnnouncement = ref(false);
+        // 🔑 公告版本号：每次发布新公告时递增此数字即可
+        const ANNOUNCEMENT_VERSION = 2;
 
         const closeAnnouncement = () => {
           showAnnouncement.value = false;
-          localStorage.setItem("has_seen_announcement_v1", "1");
+          localStorage.setItem("announcement_seen_version", String(ANNOUNCEMENT_VERSION));
           // 给一点延迟等弹窗动画结束再弹新手指引
           setTimeout(() => {
             if (status.value === 'setup') {
@@ -1104,7 +1132,8 @@
 
         // 初始化深色模式与公告
         onMounted(() => {
-          if (!localStorage.getItem("has_seen_announcement_v1")) {
+          const seenVersion = parseInt(localStorage.getItem("announcement_seen_version") || "0");
+          if (seenVersion < ANNOUNCEMENT_VERSION) {
             showAnnouncement.value = true;
           } else {
             // 如果看过公告但没看过指引（老用户刚更新功能），则直接在当前界面初始化指引
