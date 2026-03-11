@@ -45,8 +45,8 @@
       },
     };
   </script>
-  <!-- 引入 Vue 3 (更换为更稳定的 jsdelivr CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js" defer></script>
+  <!-- 引入 Vue 3 生产版 (极致压缩，提升加载速度) -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" defer></script>
   <!-- 引入 driver.js 核心逻辑 -->
   <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" defer></script>
   <!-- 引入配置文件与 Supabase SDK -->
@@ -262,9 +262,9 @@
 
 <body
   class="bg-surface-50 dark:bg-surface-950 text-slate-800 dark:text-slate-100 min-h-screen font-sans transition-colors duration-300">
-  <div id="app" class="max-w-5xl mx-auto p-4" v-cloak>
+  <div id="app" class="max-w-5xl mx-auto p-4">
     <!-- 全局 Toast 提示 -->
-    <div v-if="toastInfo.show"
+    <div v-cloak v-if="toastInfo.show"
       class="fixed top-16 left-1/2 transform -translate-x-1/2 z-[150] transition-all duration-300 pointer-events-none">
       <div :class="{
         'bg-red-500/90 text-white': toastInfo.type === 'error',
@@ -291,7 +291,7 @@
     </div>
 
     <!-- 📢 更新公告弹窗 (动态获取当前公告) -->
-    <div v-if="showAnnouncement"
+    <div v-cloak v-if="showAnnouncement"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4 fade-enter-active">
       <div
         class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200/60 dark:border-slate-700/40 relative transition-colors duration-300">
@@ -312,7 +312,7 @@
     </div>
 
     <!-- ✨ 顶部导航栏 (Redesigned) -->
-    <div
+    <div v-cloak
       class="glass-nav sticky top-0 z-50 flex justify-between items-center mb-6 px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/40 transition-colors duration-300">
       <div class="flex items-center gap-2.5">
         <span class="text-xl">📖</span>
@@ -379,7 +379,7 @@
     </div>
 
     <!-- 📅 更新记录弹窗 -->
-    <div v-if="showUpdateLogs"
+    <div v-cloak v-if="showUpdateLogs"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] fade-enter-active p-4">
       <div
         class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg w-full max-h-[85vh] flex flex-col relative transition-colors duration-300 border border-slate-200/60 dark:border-slate-700/40">
@@ -427,7 +427,7 @@
     </div>
 
     <!-- 登录/注册弹窗 -->
-    <div v-if="showAuth"
+    <div v-cloak v-if="showAuth"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 fade-enter-active p-4">
       <div
         class="bg-white dark:bg-surface-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative transition-colors duration-300">
@@ -483,7 +483,7 @@
     </div>
 
     <!-- 账号管理弹窗 -->
-    <div v-if="showAccountModal"
+    <div v-cloak v-if="showAccountModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 fade-enter-active p-4">
       <div
         class="bg-white dark:bg-surface-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm relative transition-colors duration-300">
@@ -534,7 +534,7 @@
     </div>
 
     <!-- 1. 设置页面 (Setup Page - Redesigned) -->
-    <div v-if="status === 'setup'">
+    <div v-cloak v-if="status === 'setup'">
       <!-- 三栏网格布局 -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5">
 
@@ -684,7 +684,7 @@
     </div>
 
     <!-- 2. 刷题页面 (Quiz Page) -->
-    <div v-if="status === 'quiz'" class="relative pb-28 max-w-3xl mx-auto">
+    <div v-cloak v-if="status === 'quiz'" class="relative pb-28 max-w-3xl mx-auto">
       <!-- 顶部栏：进度与退出 -->
       <div class="flex justify-between items-center mb-4">
         <button @click="status='setup'"
@@ -986,7 +986,7 @@
       </div>
     </div>
     <!-- 3. 结算页面 (Result Page) -->
-    <div v-if="status === 'result'"
+    <div v-cloak v-if="status === 'result'"
       class="section-card bg-white dark:bg-surface-800 p-6 sm:p-8 border border-slate-200/60 dark:border-slate-700/40 shadow-sm max-w-2xl mx-auto mt-6 sm:mt-10 text-center transition-colors duration-300">
       <h2 class="text-2xl sm:text-3xl font-extrabold mb-2 text-slate-800 dark:text-slate-100">
         🎉 {{ isMemorizeMode ? '背题完成！' : '练习完成！' }}
