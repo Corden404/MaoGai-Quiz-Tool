@@ -295,25 +295,20 @@
       <span class="text-gray-700 dark:text-gray-300 font-medium">加载数据中...</span>
     </div>
 
-    <!-- 📢 更新公告弹窗 (版本化，每次新公告递增版本号即可) -->
+    <!-- 📢 更新公告弹窗 (动态获取当前公告) -->
     <div v-if="showAnnouncement"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4 fade-enter-active">
       <div
-        class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200/60 dark:border-slate-700/40">
+        class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-slate-200/60 dark:border-slate-700/40 relative transition-colors duration-300">
         <div class="text-center mb-5">
-          <span class="text-4xl">🎉</span>
-          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">更新公告</h2>
+          <span class="text-4xl" v-if="currentAnnouncement?.type === 'main'">📢</span>
+          <span class="text-4xl" v-else>🎉</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">{{
+            currentAnnouncement?.title }}</h2>
+          <div class="text-xs text-slate-400 mt-1">{{ currentAnnouncement?.date }}</div>
         </div>
-        <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          <div
-            class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
-            <p class="font-bold text-indigo-700 dark:text-indigo-400 mb-1">📝 AI 笔记已上线！</p>
-            <p>现在所有题目都配备了 AI 自动生成的参考笔记，可在<strong>解题广场</strong>中查看。</p>
-          </div>
-          <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50">
-            <p class="font-bold text-amber-700 dark:text-amber-400 mb-1">⚠️ 温馨提示</p>
-            <p>AI 生成的内容可能存在错误，请结合教材自行辨别，仅供参考。</p>
-          </div>
+        <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
+          v-html="currentAnnouncement?.content">
         </div>
         <button @click="closeAnnouncement" class="mt-6 w-full btn-cta text-white font-bold py-3 rounded-2xl text-base">
           我知道了 👍
@@ -343,6 +338,13 @@
               clip-rule="evenodd"></path>
           </svg>
         </a>
+        <button @click="showUpdateLogs = true"
+          class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-500 dark:text-slate-400 flex items-center justify-center relative"
+          title="更新记录">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
         <template v-if="currentUser">
           <div class="relative">
             <button @click="showUserMenu = !showUserMenu"
@@ -381,27 +383,51 @@
       </div>
     </div>
 
-    <!-- 公告弹窗 -->
-    <div v-if="showAnnouncement"
+    <!-- 📅 更新记录弹窗 -->
+    <div v-if="showUpdateLogs"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] fade-enter-active p-4">
       <div
-        class="bg-white dark:bg-surface-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md relative transition-colors duration-300">
-        <h2 class="text-2xl font-extrabold mb-4 text-center text-brand-600 dark:text-brand-400">📢 欢迎使用刷题助手</h2>
-        <div class="space-y-3 text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
-          <p>这是一个<strong>完全免费</strong>、专为SCAUer打造的刷题工具。</p>
-          <ul class="list-disc pl-5 space-y-1">
-            <li><strong>题库准确保证</strong>：所有题目均来自官方题库，人工手动核对。</li>
-            <li><strong>智能刷题模式</strong>：顺序、随机、错题重刷、全网易错等。</li>
-            <li><strong>云端进度同步</strong>：注册登录后进度随时保存，多端无缝同步。</li>
-            <li><strong>解题互动广场</strong>：分享你的独家记忆小窍门和解析笔记！</li>
-            <li><strong>安全与隐私</strong>：所有数据安全隔离。详情请见 <a href="PRIVACY.md" target="_blank"
-                class="text-blue-500 hover:underline">隐私与免责声明</a>。</li>
-          </ul>
-          <p class="text-red-500 dark:text-red-400 font-bold text-center mt-4">祝大家逢考必过！✨</p>
+        class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg w-full max-h-[85vh] flex flex-col relative transition-colors duration-300 border border-slate-200/60 dark:border-slate-700/40">
+
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100 dark:border-slate-700/50">
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <span>📅</span> 更新记录
+          </h2>
+          <button @click="showUpdateLogs = false"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-500 transition-colors">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <button @click="closeAnnouncement" class="btn-cta w-full text-white font-bold py-3 rounded-xl">
-          知道了，开始刷题！
-        </button>
+
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+          <div v-for="(log, index) in announcementsList" :key="log.version" class="relative pl-6">
+            <!-- Timeline Line -->
+            <div v-if="index !== announcementsList.length - 1"
+              class="absolute left-[11px] top-8 bottom-[-24px] w-px bg-slate-200 dark:bg-slate-700"></div>
+            <!-- Timeline Dot -->
+            <div class="absolute left-0 top-1.5 w-[22px] h-[22px] rounded-full flex items-center justify-center"
+              :class="index === 0 ? 'bg-brand-100 dark:bg-brand-900/30 ring-4 ring-white dark:ring-surface-800' : 'bg-slate-100 dark:bg-slate-800 ring-4 ring-white dark:ring-surface-800'">
+              <div class="w-2 h-2 rounded-full"
+                :class="index === 0 ? 'bg-brand-500' : 'bg-slate-300 dark:bg-slate-600'"></div>
+            </div>
+
+            <!-- Content -->
+            <div
+              class="bg-slate-50 dark:bg-surface-900/50 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-700/50 hover:border-brand-200 dark:hover:border-brand-800/50 transition-colors">
+              <div class="flex flex-wrap items-baseline gap-2 mb-3">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base sm:text-lg">{{ log.title }}</h3>
+                <span v-if="index === 0"
+                  class="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800/50">最新</span>
+                <span class="text-xs text-slate-400 font-medium ml-auto">{{ log.date }}</span>
+              </div>
+              <div class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed update-log-content"
+                v-html="log.content"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -1067,17 +1093,87 @@
         const isGlobalLoading = ref(true);
         const isDark = ref(false);
         const showAnnouncement = ref(false);
-        // 🔑 公告版本号：每次发布新公告时递增此数字即可
-        const ANNOUNCEMENT_VERSION = 2;
+        const showUpdateLogs = ref(false);
 
-        const closeAnnouncement = () => {
-          showAnnouncement.value = false;
-          localStorage.setItem("announcement_seen_version", String(ANNOUNCEMENT_VERSION));
-          // 给一点延迟等弹窗动画结束再弹新手指引
+        // 统一管理的公告列表 (按时间倒序排列)
+        const announcementsList = [
+          {
+            version: 2,
+            type: "update",
+            title: "🎉 更新公告",
+            date: "2026-03-11",
+            content: `
+              <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 mb-3">
+                <p class="font-bold text-indigo-700 dark:text-indigo-400 mb-1">📝 AI 笔记已上线！</p>
+                <p>现在所有题目都配备了 AI 自动生成的参考笔记，可在<strong>解题广场</strong>中查看。</p>
+              </div>
+              <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50">
+                <p class="font-bold text-amber-700 dark:text-amber-400 mb-1">⚠️ 温馨提示</p>
+                <p>AI 生成的内容可能存在错误，请结合教材自行辨别，仅供参考。</p>
+              </div>
+            `
+          },
+          {
+            version: 1,
+            type: "main",
+            title: "📢 欢迎使用刷题助手",
+            date: "2026-03-01",
+            content: `
+              <p class="mb-2">这是一个<strong>完全免费</strong>、专为SCAUer打造的刷题工具。</p>
+              <ul class="list-disc pl-5 space-y-1 mb-4">
+                <li><strong>题库准确保证</strong>：所有题目均来自官方题库，人工手动核对。</li>
+                <li><strong>智能刷题模式</strong>：顺序、随机、错题重刷、全网易错等。</li>
+                <li><strong>云端进度同步</strong>：注册登录后进度随时保存，多端无缝同步。</li>
+                <li><strong>解题互动广场</strong>：分享你的独家记忆小窍门和解析笔记！</li>
+                <li><strong>安全与隐私</strong>：所有数据安全隔离。详情请见 <a href="PRIVACY.md" target="_blank" class="text-blue-500 hover:underline">隐私与免责声明</a>。</li>
+              </ul>
+              <p class="text-red-500 dark:text-red-400 font-bold text-center mt-4">祝大家逢考必过！✨</p>
+            `
+          }
+        ];
+
+        const currentAnnouncement = ref(null);
+        const mainAnnouncement = announcementsList.find(a => a.type === "main");
+        const latestUpdate = announcementsList.find(a => a.type === "update");
+
+        const checkAnnouncements = () => {
+          // 1. 检查主公告是否已读
+          const hasSeenMain = localStorage.getItem("main_announcement_seen");
+          if (!hasSeenMain && mainAnnouncement) {
+            currentAnnouncement.value = mainAnnouncement;
+            showAnnouncement.value = true;
+            return;
+          }
+
+          // 2. 检查更新公告是否已读
+          const seenUpdateVersion = parseInt(localStorage.getItem("announcement_seen_version") || "0");
+          if (latestUpdate && seenUpdateVersion < latestUpdate.version) {
+            currentAnnouncement.value = latestUpdate;
+            showAnnouncement.value = true;
+            return;
+          }
+
+          // 3. 全都已经看过了，尝试启动新手指引
           setTimeout(() => {
             if (status.value === 'setup') {
               startGuide();
             }
+          }, 300);
+        };
+
+        const closeAnnouncement = () => {
+          showAnnouncement.value = false;
+          if (currentAnnouncement.value) {
+            if (currentAnnouncement.value.type === "main") {
+              localStorage.setItem("main_announcement_seen", "1");
+            } else if (currentAnnouncement.value.type === "update") {
+              localStorage.setItem("announcement_seen_version", String(currentAnnouncement.value.version));
+            }
+          }
+
+          // 给一点延迟等弹窗动画结束再检查下一条
+          setTimeout(() => {
+            checkAnnouncements();
           }, 300);
         };
 
@@ -1132,17 +1228,8 @@
 
         // 初始化深色模式与公告
         onMounted(() => {
-          const seenVersion = parseInt(localStorage.getItem("announcement_seen_version") || "0");
-          if (seenVersion < ANNOUNCEMENT_VERSION) {
-            showAnnouncement.value = true;
-          } else {
-            // 如果看过公告但没看过指引（老用户刚更新功能），则直接在当前界面初始化指引
-            setTimeout(() => {
-              if (status.value === 'setup') {
-                startGuide();
-              }
-            }, 300);
-          }
+          checkAnnouncements();
+
           if (
             localStorage.getItem("theme") === "dark" ||
             (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
@@ -2245,6 +2332,9 @@
           toastInfo,
           showAnnouncement,
           closeAnnouncement,
+          showUpdateLogs,
+          announcementsList,
+          currentAnnouncement,
 
           // 暴露认证相关的变量和方法给模板
           currentUser,
