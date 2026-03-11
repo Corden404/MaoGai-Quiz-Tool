@@ -1640,7 +1640,7 @@
 
               if (error) throw error;
               if (!data || data.length === 0) {
-                showToast("目前全网数据不足，或没有符合条件的易错题。", "warning");
+                showToast("由于项目处于早期阶段，目前使用人数不多，暂时无法收集到足够多的有效易错题数据，或没有符合条件的题目。", "warning");
                 isStartingQuiz.value = false;
                 return;
               }
