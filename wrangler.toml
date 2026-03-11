@@ -3,3 +3,4 @@ compatibility_date = "2026-03-02"
 
 [assets]
 directory = "./"
+pages_build_output_dir = "./"
