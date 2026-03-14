@@ -42,12 +42,13 @@
 
 ```text
 .
-├── index.html        # 项目主入口：包含所的 UI 视图、Vue 3 业务逻辑、以及 Supabase 云端对接
-├── config.js         # 全局配置：存储 Supabase 连接信息 (URL & KEY)
-├── questions.js      # 封装好的题库数据，作为全局变量挂载（规避跨域限制）
-├── questions.json    # 原始的题库 JSON 格式数据骨架，本项目暂不需要，可供未来参考
-├── icon.png          # 网站 Favicon 图标
-└── README.md         # 项目详细说明文档与部署指南
+├── index.html            # 项目主入口：包含所有的 UI 视图、Vue 3 业务逻辑、以及 Supabase 云端对接
+├── config.js             # 全局配置：存储 Supabase 连接信息 (URL & KEY)
+├── questions.js          # 《毛概》题库数据，作为全局变量挂载（规避跨域限制）
+├── mayuan_questions.js   # 《马原》题库数据，作为全局变量挂载
+├── questions.json        # 原始的题库 JSON 格式数据骨架，本项目暂不需要，可供未来参考
+├── icon.png              # 网站 Favicon 图标
+└── README.md             # 项目详细说明文档与部署指南
       
 ```
 
