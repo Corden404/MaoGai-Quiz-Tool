@@ -53,6 +53,7 @@
   <script src="./config.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="./questions.js" defer></script>
+  <script src="./mayuan_questions.js" defer></script>
   <style>
     /* === Transitions === */
     .fade-enter-active,
@@ -316,7 +317,7 @@
       class="glass-nav sticky top-0 z-50 flex justify-between items-center mb-6 px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/40 transition-colors duration-300">
       <div class="flex items-center gap-2.5">
         <span class="text-xl">📖</span>
-        <span class="font-extrabold text-lg text-slate-800 dark:text-slate-100 tracking-tight">毛概刷题助手</span>
+        <span class="font-extrabold text-lg text-slate-800 dark:text-slate-100 tracking-tight">思政刷题助手</span>
       </div>
       <div class="flex items-center gap-2">
         <button @click="toggleDarkMode" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
@@ -535,6 +536,22 @@
 
     <!-- 1. 设置页面 (Setup Page - Redesigned) -->
     <div v-cloak v-if="status === 'setup'">
+      <!-- 科目切换 Tab -->
+      <div class="flex justify-center mb-6">
+        <div class="bg-slate-200/50 dark:bg-surface-800 p-1 rounded-2xl flex shadow-inner overflow-x-auto w-full sm:w-auto custom-scrollbar">
+          <button @click="loadSubjectData('maogai')"
+            :class="currentSubject === 'maogai' ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-brand-400 font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'"
+            class="px-4 sm:px-6 py-2.5 rounded-xl transition-all duration-300 text-sm sm:text-base flex-shrink-0 flex-1 whitespace-nowrap">
+            毛概
+          </button>
+          <button @click="loadSubjectData('mayuan')"
+            :class="currentSubject === 'mayuan' ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-brand-400 font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'"
+            class="px-4 sm:px-6 py-2.5 rounded-xl transition-all duration-300 text-sm sm:text-base flex-shrink-0 flex-1 whitespace-nowrap">
+            马原
+          </button>
+        </div>
+      </div>
+
       <!-- 三栏网格布局 -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5">
 
@@ -828,8 +845,9 @@
             <div class="font-bold text-lg mb-2 flex items-center gap-2">{{ resultTitle }}</div>
             <div class="text-slate-700 dark:text-slate-200">
               <span class="font-bold opacity-80">参考答案：</span>
-              <span class="text-xl sm:text-2xl font-mono ml-1 bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded">{{
+              <span v-if="currentQuestion.answer" class="text-xl sm:text-2xl font-mono ml-1 bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded">{{
                 currentQuestion.answer }}</span>
+              <span v-else class="text-sm ml-1 text-slate-500 italic">该题原书暂无标准答案</span>
             </div>
           </div>
         </div>
@@ -1268,21 +1286,38 @@
           const authError = ref("");
           const authLoading = ref(false);
 
-          onMounted(async () => {
-            // 优先加载本地存储数据
-            try {
-              const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-              if (stored) userProgress.value = JSON.parse(stored);
-            } catch (e) {
-              console.error("Failed to load progress", e);
+          const currentSubject = ref("maogai");
+
+          const loadSubjectData = (subjectId) => {
+            currentSubject.value = subjectId;
+            let data = [];
+            if (subjectId === "maogai") {
+              data = window.QUESTIONS_DATA;
+            } else if (subjectId === "mayuan") {
+              data = window.MAYUAN_QUESTIONS_DATA;
             }
 
-            const data = window.QUESTIONS_DATA;
             if (!data) {
-              alert("题库加载失败，请确保 questions.js 存在");
+              alert("题库加载失败，请确保对应的数据文件存在");
               isGlobalLoading.value = false;
               return;
             }
+
+            // 统一归一化特殊题型
+            data.forEach(q => {
+              if (q.type && q.type.includes("考研真题")) {
+                if (q.type.includes("单项选择题") || q.question_content.includes("单项选择题")) {
+                  q.type = "单项选择题";
+                } else if (q.type.includes("多项选择题") || q.question_content.includes("多项选择题")) {
+                  q.type = "多项选择题";
+                } else if (q.question_content.includes("材料分析题")) {
+                  q.type = "材料分析题";
+                } else {
+                  // 如果都没有，默认归入辨析题（或你指定的其他题型）
+                  q.type = "辨析题";
+                }
+              }
+            });
 
             allQuestions.value = data;
             mergeProgressToQuestions(); // 初始化合并一次本地数据
@@ -1291,9 +1326,19 @@
             const typesSet = new Set(data.map((q) => q.type || "未知题型"));
 
             const typeOrder = ["单项选择题", "多项选择题", "辨析题", "简答题", "材料分析题", "论述题"];
+            // 兼容可能出现的新题型
             const sortedTypes = Array.from(typesSet).sort((a, b) => {
-              const ia = typeOrder.indexOf(a);
-              const ib = typeOrder.indexOf(b);
+              // 处理前缀匹配，比如 "考研真题(单项选择题)" => "单项选择题"
+              let aBase = a;
+              let bBase = b;
+              if (a.includes("单项选择题")) aBase = "单项选择题";
+              else if (a.includes("多项选择题")) aBase = "多项选择题";
+              
+              if (b.includes("单项选择题")) bBase = "单项选择题";
+              else if (b.includes("多项选择题")) bBase = "多项选择题";
+
+              const ia = typeOrder.indexOf(aBase);
+              const ib = typeOrder.indexOf(bBase);
               return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
             });
 
@@ -1325,7 +1370,21 @@
             };
 
             selectedChapters.value = [...config.value.chapters];
-            if (config.value.types.length > 0) selectedTypes.value = [config.value.types[0]];
+            if (config.value.types.length > 0) selectedTypes.value = [...config.value.types];
+            
+            status.value = 'setup';
+          };
+
+          onMounted(async () => {
+            // 优先加载本地存储数据
+            try {
+              const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+              if (stored) userProgress.value = JSON.parse(stored);
+            } catch (e) {
+              console.error("Failed to load progress", e);
+            }
+
+            loadSubjectData("maogai");
 
             // 初步渲染已经可以解除全局等待，提升体验感受
             isGlobalLoading.value = false;
@@ -1915,6 +1974,12 @@
 
             // 提交后的样式逻辑
             if (hasSubmitted.value && isObjective.value) {
+              if (!currentQuestion.value.answer) {
+                 // 如果没有答案，用户选的就算对，显示绿色
+                 if (isSelected) return "bg-emerald-500 dark:bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500 shadow-md ring-2 ring-emerald-200 dark:ring-emerald-900/50 scale-[1.02] z-10";
+                 return "bg-slate-100 dark:bg-slate-700/50 text-slate-400 dark:text-slate-500 border-transparent opacity-60";
+              }
+
               // 获取标准答案的前两个字用于判断 (兼容 "正确" "错误" "A" "B" 等)
               const cleanAnswer = normalizeText(currentQuestion.value.answer);
 
@@ -1956,7 +2021,9 @@
             hasSubmitted.value = true;
 
             if (isObjective.value) {
-              if (isChoice.value) {
+              if (!currentQuestion.value.answer) {
+                isCorrect.value = true;
+              } else if (isChoice.value) {
                 // 原有的选择题逻辑
                 const uAns = [...userSelection.value].sort().join("").toUpperCase();
                 const sAns = currentQuestion.value.answer
@@ -2320,6 +2387,8 @@
             accuracy,
             modeLabels,
             getTypeIcon,
+            currentSubject,
+            loadSubjectData,
 
             // 暴露体验相关的变量和方法
             isGlobalLoading,
