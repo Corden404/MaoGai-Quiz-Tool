@@ -563,7 +563,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "1. 哲学的基本问题是（）。",
-    "answer": "C",
+    "answer": "D",
     "options": {
       "A": "世界观和方法论的关系问题",
       "B": "物质和运动的关系问题",
@@ -576,7 +576,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "2. 物质第一性、意识第二性是（）。",
-    "answer": "D",
+    "answer": "C",
     "options": {
       "A": "形而上学观点",
       "B": "唯心主义观点",
@@ -589,7 +589,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "3. 划分唯物主义和唯心主义的标准在于是否承认（）。",
-    "answer": "D",
+    "answer": "C",
     "options": {
       "A": "世界是普遍联系的",
       "B": "世界是运动发展的",
@@ -602,7 +602,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "4. 肯定思维和存在有同一性，这是（）。",
-    "answer": "C",
+    "answer": "D",
     "options": {
       "A": "辩证法的观点",
       "B": "形而上学的观点",
@@ -628,7 +628,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "6. 对事物从客体的或直观的形式去理解，而不是把它们当作感性的人的活动、当作实践去理解。这是（）。",
-    "answer": "B",
+    "answer": "C",
     "options": {
       "A": "主观唯心主义的观点",
       "B": "客观唯心主义的观点",
@@ -641,7 +641,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "7. 物质的唯一特性是（）。",
-    "answer": "B",
+    "answer": "D",
     "options": {
       "A": "普遍性",
       "B": "无限可分性",
@@ -654,7 +654,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "8. 物质的存在方式和根本属性是（）。",
-    "answer": "A",
+    "answer": "B",
     "options": {
       "A": "时间",
       "B": "运动",
@@ -693,7 +693,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "11. 时间、空间是（）。",
-    "answer": "D",
+    "answer": "B",
     "options": {
       "A": "人们经验规定的东西",
       "B": "物质存在的基本形式",
@@ -706,7 +706,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "12. 时间、空间的相对性是指（）。",
-    "answer": "D",
+    "answer": "A",
     "options": {
       "A": "时间、空间的特点是具体的、可变动的",
       "B": "时间、空间的存在是无条件的、不变的",
@@ -719,7 +719,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "13. 实践是（）。",
-    "answer": "C",
+    "answer": "D",
     "options": {
       "A": "人类一切有意识有目的的活动",
       "B": "人类为了生存而必须适应环境的活动",
@@ -745,7 +745,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "15. “忧心忡忡的穷人甚至对最美丽的风景都没有什么感觉；贩卖矿物的商人只看矿物的商业价值，他没有矿物学的感觉。”这是（）。",
-    "answer": "D",
+    "answer": "C",
     "options": {
       "A": "先验论的观点",
       "B": "主观唯心主义的观点",
@@ -758,7 +758,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "16. 意识是（）。",
-    "answer": "C",
+    "answer": "D",
     "options": {
       "A": "主体精神的体现",
       "B": "大脑的分泌物",
@@ -771,7 +771,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "17. “意识是客观存在的主观映象”，是指（）。",
-    "answer": "B",
+    "answer": "D",
     "options": {
       "A": "意识是沟通客观与主观的桥梁",
       "B": "意识是客观精神和主观感觉的产物",
@@ -784,7 +784,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "18. 对于同一事物，不同的人有不同的反映。这说明（）。",
-    "answer": "D",
+    "answer": "C",
     "options": {
       "A": "意识是主体的自由创造",
       "B": "意识不受客体制约",
@@ -823,7 +823,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "21. 唯物主义认为世界统一于（）。",
-    "answer": "C",
+    "answer": "B",
     "options": {
       "A": "存在",
       "B": "物质",
@@ -836,7 +836,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "22. 唯物辩证法的总特征是（）。",
-    "answer": "B",
+    "answer": "D",
     "options": {
       "A": "绝对和相对的观点",
       "B": "有限和无限的观点",
@@ -849,7 +849,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "23. 唯物辩证法和形而上学对立的焦点在于是否承认（）。",
-    "answer": "D",
+    "answer": "C",
     "options": {
       "A": "事物的普遍联系",
       "B": "事物的运动、变化和发展",
@@ -888,7 +888,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "26. 唯物辩证法认为发展的实质是（）。",
-    "answer": "C",
+    "answer": "B",
     "options": {
       "A": "事物的变化过程",
       "B": "事物由旧质转化为新质",
@@ -901,7 +901,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "27. 矛盾问题的精髓是（）。",
-    "answer": "B",
+    "answer": "D",
     "options": {
       "A": "内部矛盾和外部矛盾的关系问题",
       "B": "根本矛盾和非根本矛盾的关系问题",
@@ -914,7 +914,7 @@ window.MAYUAN_QUESTIONS_DATA = [
     "chapter": "第一章 世界的物质性及发展规律",
     "type": "单项选择题",
     "question_content": "28. 公孙龙的“白马非马”论的错误在于割裂了（）。",
-    "answer": "D",
+    "answer": "C",
     "options": {
       "A": "同一性与斗争性的关系",
       "B": "内因与外因的关系",
