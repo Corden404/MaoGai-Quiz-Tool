@@ -622,7 +622,7 @@
           <span class="text-4xl" v-else>🎉</span>
           <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">{{
             currentAnnouncement?.title }}</h2>
-          <div class="text-xs text-slate-400 mt-1">{{ currentAnnouncement?.date }}</div>
+          <div v-if="currentAnnouncement?.date" class="text-xs text-slate-400 mt-1">{{ currentAnnouncement?.date }}</div>
         </div>
         <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
           v-html="currentAnnouncement?.content">
@@ -1585,15 +1585,13 @@
               version: 1,
               type: "main",
               title: "📢 欢迎使用刷题助手",
-              date: "2026-03-01",
               content: `
-              <p class="mb-2">这是一个<strong>完全免费</strong>、专为SCAUer打造的刷题工具。</p>
+              <p class="mb-2">思政刷题助手现已上线，支持题目练习、智能刷题、进度同步和错题复习，帮助你更高效地备考。</p>
               <ul class="list-disc pl-5 space-y-1 mb-4">
-                <li><strong>题库准确保证</strong>：所有题目均来自官方题库，人工手动核对。</li>
-                <li><strong>智能刷题模式</strong>：顺序、随机、错题重刷、全网易错等。</li>
-                <li><strong>云端进度同步</strong>：注册登录后进度随时保存，多端无缝同步。</li>
-                <li><strong>解题互动广场</strong>：分享你的独家记忆小窍门和解析笔记！</li>
-                <li><strong>安全与隐私</strong>：所有数据安全隔离。详情请见 <a href="privacy.html" target="_blank" class="text-blue-500 hover:underline">隐私与免责声明</a>。</li>
+                <li><strong>多种练习模式</strong>：顺序、随机、错题巩固等模式自由切换。</li>
+                <li><strong>进度自动同步</strong>：登录后保存练习记录，多端继续学习。</li>
+                <li><strong>错题复习</strong>：自动整理薄弱题目，方便集中巩固。</li>
+                <li><strong>笔记与隐私</strong>：可记录解析笔记，数据说明见 <a href="privacy.html" target="_blank" class="text-blue-500 hover:underline">隐私与免责声明</a>。</li>
               </ul>
               <p class="text-red-500 dark:text-red-400 font-bold text-center mt-4">祝大家逢考必过！✨</p>
             `
