@@ -54,14 +54,6 @@
 - 公开分享的笔记会展示在解题广场中，未分享的个人内容不会公开。
 - 更多说明请查看 [隐私与免责声明](privacy.html)。
 
-## 📸 界面预览
-
-<p align="center">
-  <img src="宣传图1.png" width="60%" />
-  <img src="宣传图2.png" width="60%" />
-  <img src="宣传图3.png" width="60%" />
-</p>
-
 ## 🛠️ 技术概览
 
 项目基于 **Vue 3 + Tailwind CSS + Supabase** 构建，整体保持轻量级纯前端形态。Supabase 用于提供用户认证、云端进度同步、公共笔记和全网易错统计等能力。
