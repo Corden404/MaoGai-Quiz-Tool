@@ -930,10 +930,19 @@
             <div v-else
               class="space-y-3 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-lg">
               <div class="text-sm font-bold text-red-600 dark:text-red-400">请确认您的操作：</div>
-              <button @click="deleteAccount" :disabled="deleteCountdown > 0"
+              <label class="block">
+                <span class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">输入当前密码以验证身份</span>
+                <input type="password" v-model="deletePassword" autocomplete="current-password"
+                  :disabled="isDeletingAccountRequest"
+                  class="w-full border border-red-200 dark:border-red-800 dark:bg-slate-800 dark:text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-red-400"
+                  placeholder="当前密码" />
+              </label>
+              <div v-if="deleteError" class="text-xs font-bold text-red-600 dark:text-red-400">{{ deleteError }}</div>
+              <button @click="deleteAccount"
+                :disabled="deleteCountdown > 0 || !deletePassword || isDeletingAccountRequest"
                 class="w-full text-white py-3 rounded-lg font-bold transition shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                :class="deleteCountdown > 0 ? 'bg-red-300 dark:bg-red-800/50' : 'bg-red-600 hover:bg-red-700'">
-                {{ deleteCountdown > 0 ? `等待 ${deleteCountdown} 秒...` : '立即确认注销' }}
+                :class="deleteCountdown > 0 || !deletePassword ? 'bg-red-300 dark:bg-red-800/50' : 'bg-red-600 hover:bg-red-700'">
+                {{ isDeletingAccountRequest ? '正在验证并注销...' : (deleteCountdown > 0 ? `等待 ${deleteCountdown} 秒...` : '立即确认注销') }}
               </button>
               <button @click="cancelDelete"
                 class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 text-sm rounded-lg font-bold transition">
@@ -1305,6 +1314,10 @@
               <textarea v-model="noteContent"
                 class="w-full bg-transparent outline-none text-slate-700 dark:text-slate-300 text-sm min-h-[80px] resize-y"
                 placeholder="这里可以记录私人笔记，或者通过AI生成的解析..."></textarea>
+              <div class="text-right text-[11px] mt-1"
+                :class="noteCharacterCount > MAX_NOTE_LENGTH ? 'text-red-500 font-bold' : 'text-slate-400'">
+                {{ noteCharacterCount }} / {{ MAX_NOTE_LENGTH }}
+              </div>
               <div
                 class="flex justify-between items-center mt-2 border-t border-amber-200/50 dark:border-amber-700/30 pt-2">
                 <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
@@ -1351,8 +1364,8 @@
                       <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <span
                           class="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-[10px]">{{
-                          pn.user_email.charAt(0).toUpperCase() }}</span>
-                        {{ pn.user_email.split('@')[0] }}
+                          (pn.display_name || '学').charAt(0) }}</span>
+                        {{ pn.display_name }}
                       </span>
                       <span class="text-[10px] text-slate-400">{{ new Date(pn.created_at).toLocaleDateString()
                         }}</span>
@@ -1487,11 +1500,21 @@
   </div>
 
   <script src="src/keyboard-shortcuts.js"></script>
+  <script src="src/user-data-security.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const { createApp, ref, computed, onMounted, onUnmounted, nextTick, watch } = Vue;
-
-      const LOCAL_STORAGE_KEY = "maogai_progress_v1";
+      const {
+        MAX_NOTE_LENGTH,
+        canSyncProgress,
+        countCodePoints,
+        createEmptyProgress,
+        migrateLegacyProgress,
+        readProgress,
+        removeProgress,
+        validateNoteContent,
+        writeProgress,
+      } = UserDataSecurity;
 
       // 全局错误捕获：非阻塞式 DOM 提示条，避免 alert() 阻塞主线程
       const _showGlobalError = (() => {
@@ -1753,6 +1776,9 @@
 
           // --- 0. 账号与认证状态 ---
           const currentUser = ref(null);
+          const userProgress = ref(createEmptyProgress());
+          const isAuthTransitioning = ref(false);
+          let authTransitionVersion = 0;
           const showAuth = ref(false);
           const authMode = ref("login"); // 'login' or 'register'
           const authForm = ref({ email: "", password: "" });
@@ -1848,14 +1874,69 @@
             status.value = 'setup';
           };
 
-          onMounted(async () => {
-            // 优先加载本地存储数据
-            try {
-              const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-              if (stored) userProgress.value = JSON.parse(stored);
-            } catch (e) {
-              console.error("Failed to load progress", e);
+          const hasProgressData = (progress) =>
+            ["tags", "error_counts", "notes", "reported_questions"]
+              .some((key) => Object.keys(progress?.[key] || {}).length > 0);
+
+          const resetIdentityBoundView = () => {
+            attempts.value = {};
+            noteContent.value = currentQuestion.value.note || "";
+            shareToPublic.value = false;
+            publicNotes.value = [];
+          };
+
+          const applyAuthSession = async (session) => {
+            const transitionVersion = ++authTransitionVersion;
+            cancelPendingSync();
+            isAuthTransitioning.value = true;
+
+            const nextUser = session?.user || null;
+            currentUser.value = nextUser;
+            userProgress.value = createEmptyProgress();
+            mergeProgressToQuestions();
+            resetIdentityBoundView();
+
+            const targetUserId = nextUser?.id || null;
+            userProgress.value = readProgress(localStorage, targetUserId);
+            mergeProgressToQuestions();
+            resetIdentityBoundView();
+
+            if (!nextUser || !supabaseClient) {
+              isAuthTransitioning.value = false;
+              return;
             }
+
+            try {
+              const { data, error } = await supabaseClient
+                .from("user_progress")
+                .select("progress_data")
+                .eq("user_id", targetUserId)
+                .maybeSingle();
+              if (error) throw error;
+              if (transitionVersion !== authTransitionVersion || currentUser.value?.id !== targetUserId) return;
+
+              if (data?.progress_data) {
+                userProgress.value = data.progress_data;
+                writeProgress(localStorage, targetUserId, userProgress.value);
+                mergeProgressToQuestions();
+                resetIdentityBoundView();
+                console.log("✅ 已加载当前账号的云端进度");
+              } else if (hasProgressData(userProgress.value)) {
+                await syncProgressNow(targetUserId, userProgress.value);
+              }
+            } catch (err) {
+              console.error("获取云端数据失败:", err);
+              showToast("云端进度加载失败，已使用当前账号的本地缓存。", "warning");
+            } finally {
+              if (transitionVersion === authTransitionVersion) {
+                isAuthTransitioning.value = false;
+              }
+            }
+          };
+
+          onMounted(async () => {
+            migrateLegacyProgress(localStorage);
+            userProgress.value = readProgress(localStorage, null);
 
             loadSubjectData("maogai");
 
@@ -1868,14 +1949,20 @@
               const {
                 data: { session },
               } = await supabaseClient.auth.getSession();
-              if (session) {
-                currentUser.value = session.user;
-                // 注意：数据拉取在 watch(currentUser) 中进行
-              }
+              await applyAuthSession(session);
 
               // 持续监听登录状态变化 (Token 刷新/退出等)
               supabaseClient.auth.onAuthStateChange((_event, session) => {
-                currentUser.value = session ? session.user : null;
+                const nextUser = session?.user || null;
+                if ((nextUser?.id || null) === (currentUser.value?.id || null)) {
+                  currentUser.value = nextUser;
+                  return;
+                }
+                setTimeout(() => {
+                  applyAuthSession(session).catch((error) => {
+                    console.error("认证状态切换失败:", error);
+                  });
+                }, 0);
               });
             }
           });
@@ -1936,35 +2023,42 @@
 
           const logout = async () => {
             if (supabaseClient) {
-              await supabaseClient.auth.signOut();
-              // 退出登录时，清空本地记录的刷题进度和打卡记录，避免污染下一个登录的账号
-              userProgress.value = { tags: {}, error_counts: {}, notes: {}, reported_questions: {} };
-              localStorage.removeItem(LOCAL_STORAGE_KEY);
-              mergeProgressToQuestions();
+              await supabaseClient.auth.signOut({ scope: "local" });
+              await applyAuthSession(null);
             }
           };
 
           const deleteAccount = async () => {
             if (!currentUser.value || !supabaseClient) return;
 
+            deleteError.value = "";
+            if (!deletePassword.value) {
+              deleteError.value = "请输入当前密码。";
+              return;
+            }
+
+            const deletedUserId = currentUser.value.id;
             try {
+              isDeletingAccountRequest.value = true;
               isGlobalLoading.value = true;
-              const { error } = await supabaseClient.rpc('delete_user');
+              const { error } = await supabaseClient.functions.invoke('delete-account', {
+                body: { password: deletePassword.value }
+              });
               if (error) throw error;
 
-              localStorage.removeItem(LOCAL_STORAGE_KEY);
+              removeProgress(localStorage, deletedUserId);
               alert("账号已成功注销并清除所有数据。");
               showAccountModal.value = false;
               cancelDelete();
-              await logout();
+              await supabaseClient.auth.signOut({ scope: "local" }).catch(() => {});
+              await applyAuthSession(null);
             } catch (err) {
               console.error("注销账号失败:", err);
-              if (err.message && err.message.includes('schema cache')) {
-                alert("注销失败：数据库接口尚未就绪。\n\n解决方案：请回到 Supabase 的 SQL Editor 运行以下命令刷新缓存：\nNOTIFY pgrst, reload schema;");
-              } else {
-                alert("注销账号失败: " + (err.message || "未知错误"));
-              }
+              deleteError.value = err?.context?.status === 401
+                ? "当前密码不正确，或登录状态已失效。"
+                : "注销失败，请检查网络后重试。";
             } finally {
+              isDeletingAccountRequest.value = false;
               isGlobalLoading.value = false;
             }
           };
@@ -1972,12 +2066,17 @@
           const showAccountModal = ref(false);
           const showUserMenu = ref(false);
           const isDeletingAccount = ref(false);
+          const isDeletingAccountRequest = ref(false);
           const deleteCountdown = ref(5);
+          const deletePassword = ref("");
+          const deleteError = ref("");
           let countdownTimer = null;
 
           const startDeleteCountdown = () => {
             isDeletingAccount.value = true;
             deleteCountdown.value = 5;
+            deletePassword.value = "";
+            deleteError.value = "";
             countdownTimer = setInterval(() => {
               deleteCountdown.value--;
               if (deleteCountdown.value <= 0) {
@@ -1989,13 +2088,13 @@
           const cancelDelete = () => {
             isDeletingAccount.value = false;
             deleteCountdown.value = 5;
+            deletePassword.value = "";
+            deleteError.value = "";
             if (countdownTimer) clearInterval(countdownTimer);
           };
 
           // --- 1. 状态变量 ---
           const allQuestions = ref([]);
-          const userProgress = ref({ tags: {}, error_counts: {}, notes: {}, reported_questions: {} });
-
           const status = ref("setup");
           const config = ref({ chapters: [], types: [] });
           const queue = ref([]);
@@ -2058,6 +2157,7 @@
           // 笔记相关
           const showNote = ref(false);
           const noteContent = ref("");
+          const noteCharacterCount = computed(() => countCodePoints(noteContent.value));
           const saveBtnText = ref("保存笔记");
           const noteTab = ref('private');
           const shareToPublic = ref(false);
@@ -2069,49 +2169,64 @@
           const attempts = ref({});
 
           let syncTimeout = null;
+          let syncTargetUserId = null;
+
+          const cancelPendingSync = () => {
+            if (syncTimeout) clearTimeout(syncTimeout);
+            syncTimeout = null;
+            syncTargetUserId = null;
+          };
+
+          const syncProgressNow = async (expectedUserId, progress) => {
+            if (
+              !supabaseClient ||
+              !canSyncProgress(expectedUserId, currentUser.value?.id)
+            ) {
+              return false;
+            }
+
+            const { error } = await supabaseClient.from("user_progress").upsert(
+              {
+                user_id: expectedUserId,
+                progress_data: progress,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" },
+            );
+            if (error) throw error;
+            return true;
+          };
+
           const saveProgress = () => {
-            // 更新本地变动时间戳，用于多端同步合并比对
             userProgress.value.last_updated = Date.now();
+            const activeUserId = currentUser.value?.id || null;
+            writeProgress(localStorage, activeUserId, userProgress.value);
 
-            // 1. 本地存储 (永远最快响应)
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-
-            // 2. 云端同步 (如果有账号登录，加入防抖推送到云端)
-            if (currentUser.value && supabaseClient) {
-              clearTimeout(syncTimeout);
+            if (activeUserId && supabaseClient && !isAuthTransitioning.value) {
+              cancelPendingSync();
+              syncTargetUserId = activeUserId;
               syncTimeout = setTimeout(async () => {
+                const expectedUserId = syncTargetUserId;
+                syncTimeout = null;
+                syncTargetUserId = null;
                 try {
-                  const { error } = await supabaseClient.from("user_progress").upsert(
-                    {
-                      user_id: currentUser.value.id,
-                      progress_data: userProgress.value,
-                      updated_at: new Date().toISOString(),
-                    },
-                    { onConflict: "user_id" },
-                  ); // 使用 user_id 作为冲突主键
-                  if (error) console.error("云端同步失败:", error);
-                  else console.log("☁️ 进度已同步至云端");
+                  if (await syncProgressNow(expectedUserId, userProgress.value)) {
+                    console.log("☁️ 进度已同步至云端");
+                  }
                 } catch (e) {
                   console.error("云端同步异常:", e);
                 }
-              }, 1500); // 1.5秒防抖，避免频繁打字发请求
+              }, 1500);
             }
           };
 
-          // 【新增】：监听页面隐藏或卸载，如果有没发出的同步请求，立刻发出
           const flushSync = () => {
-            if (syncTimeout && currentUser.value && supabaseClient) {
-              clearTimeout(syncTimeout);
-              syncTimeout = null;
-              supabaseClient.from("user_progress").upsert(
-                {
-                  user_id: currentUser.value.id,
-                  progress_data: userProgress.value,
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "user_id" },
-              ).then();
-            }
+            if (!syncTimeout || !syncTargetUserId) return;
+            const expectedUserId = syncTargetUserId;
+            cancelPendingSync();
+            syncProgressNow(expectedUserId, userProgress.value).catch((error) => {
+              console.error("立即同步失败:", error);
+            });
           };
 
           onMounted(() => {
@@ -2119,41 +2234,6 @@
               if (document.visibilityState === "hidden") flushSync();
             });
             window.addEventListener("beforeunload", flushSync);
-          });
-
-          // 监听登录状态变化，一登录就去拉取云端数据
-          watch(currentUser, async (newUser) => {
-            if (newUser && supabaseClient) {
-              try {
-                const { data, error } = await supabaseClient.from("user_progress").select("progress_data").eq("user_id", newUser.id).maybeSingle(); // 确保只查自己那条，没数据也不报错
-
-                if (data && data.progress_data) {
-                  const cloudData = data.progress_data;
-                  const cloudTimestamp = cloudData.last_updated || 0;
-                  const localTimestamp = userProgress.value.last_updated || 0;
-
-                  if (cloudTimestamp >= localTimestamp) {
-                    // 云端数据比本地新，覆盖本地并刷新视图
-                    userProgress.value = cloudData;
-                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userProgress.value));
-                    mergeProgressToQuestions();
-                    console.log("✅ 成功拉取并应用最新云端进度");
-                  } else {
-                    // 本地数据比云端新，触发一次往云端的推送
-                    console.log("⬆️ 发现本地进度更新，正在同步覆盖云端数据");
-                    saveProgress();
-                  }
-                } else {
-                  // 如果云端还没数据，把本地可能已存在的进度推上去
-                  if (Object.keys(userProgress.value.tags || {}).length > 0 || Object.keys(userProgress.value.error_counts || {}).length > 0) {
-                    console.log("⬆️ 云端无数据，同步本地进度至云端");
-                    saveProgress();
-                  }
-                }
-              } catch (err) {
-                console.error("获取云端数据失败:", err);
-              }
-            }
           });
 
           // --- 3. 计算属性 ---
@@ -2858,48 +2938,49 @@
           };
 
           const saveNote = async () => {
-            saveBtnText.value = "保存中...";
             const q = currentQuestion.value;
-            if (q) {
-              q.note = noteContent.value;
-              userProgress.value.notes[q.id] = noteContent.value;
-              saveProgress();
-
-              // 处理公开共享功能
-              if (shareToPublic.value && currentUser.value && supabaseClient) {
-                try {
-                  // 查询是否已经分享过这条笔记
-                  const { data: existing } = await supabaseClient
-                    .from('public_notes')
-                    .select('id')
-                    .eq('question_id', q.id)
-                    .eq('user_id', currentUser.value.id)
-                    .single();
-
-                  if (existing) {
-                    await supabaseClient.from('public_notes').update({ content: noteContent.value }).eq('id', existing.id);
-                  } else {
-                    await supabaseClient.from('public_notes').insert({
-                      question_id: q.id,
-                      user_id: currentUser.value.id,
-                      user_email: currentUser.value.email,
-                      content: noteContent.value
-                    });
-                  }
-                } catch (err) {
-                  if (err.code !== "PGRST116") {
-                    console.error("发布公开笔记失败:", err);
-                  }
-                }
-              }
-
-              saveBtnText.value = "✅ 已保存";
-              setTimeout(() => {
-                saveBtnText.value = "保存笔记";
-              }, 2000);
-            } else {
+            if (!q?.id) {
               saveBtnText.value = "保存失败";
+              return;
             }
+
+            const privateValidation = validateNoteContent(noteContent.value, { public: false });
+            if (!privateValidation.ok) {
+              showToast(privateValidation.message, "error");
+              return;
+            }
+            if (shareToPublic.value) {
+              const publicValidation = validateNoteContent(noteContent.value, { public: true });
+              if (!publicValidation.ok) {
+                showToast(publicValidation.message, "error");
+                return;
+              }
+            }
+
+            saveBtnText.value = "保存中...";
+            q.note = noteContent.value;
+            userProgress.value.notes[q.id] = noteContent.value;
+            saveProgress();
+
+            if (shareToPublic.value && currentUser.value && supabaseClient) {
+              try {
+                const { error } = await supabaseClient.rpc('upsert_public_note', {
+                  p_question_id: q.id,
+                  p_content: noteContent.value
+                });
+                if (error) throw error;
+              } catch (error) {
+                console.error("发布公开笔记失败:", error);
+                saveBtnText.value = "私人笔记已保存";
+                showToast("私人笔记已保存，但公开分享失败。", "warning");
+                return;
+              }
+            }
+
+            saveBtnText.value = "✅ 已保存";
+            setTimeout(() => {
+              saveBtnText.value = "保存笔记";
+            }, 2000);
           };
 
           const showAllNotes = ref(false);
@@ -2907,48 +2988,33 @@
           const fetchPublicNotes = async () => {
             const q = currentQuestion.value;
             if (!q || !q.id || !supabaseClient) return;
+            if (!currentUser.value) {
+              publicNotes.value = [];
+              return;
+            }
 
             isLoadingPublicNotes.value = true;
             try {
-              // 1. 获取公开笔记并按点赞数排序，然后按时间倒序
-              const { data, error } = await supabaseClient
-                .from('public_notes')
-                .select('*')
-                .eq('question_id', q.id)
-                .order('likes', { ascending: false })
-                .order('created_at', { ascending: false });
-
+              const { data, error } = await supabaseClient.rpc('get_public_notes', {
+                p_question_id: q.id
+              });
               if (error) throw error;
 
-              // 2. 如果已登录，获取当前用户对这些笔记的点赞状态
-              let myLikes = new Set();
-              if (currentUser.value && data && data.length > 0) {
-                const noteIds = data.map(n => n.id);
-                const { data: likesData, error: likesError } = await supabaseClient
-                  .from('note_likes')
-                  .select('note_id')
-                  .eq('user_id', currentUser.value.id)
-                  .in('note_id', noteIds);
-
-                if (!likesError && likesData) {
-                  myLikes = new Set(likesData.map(l => l.note_id));
-                }
-              }
-
-              // 3. 组合数据
               publicNotes.value = (data || []).map(note => ({
-                ...note,
+                id: note.id,
+                question_id: note.question_id,
+                display_name: note.display_name,
+                content: note.content,
+                created_at: note.created_at,
                 likes: note.likes || 0,
-                isLikedByMe: myLikes.has(note.id)
+                isMine: Boolean(note.is_mine),
+                isLikedByMe: Boolean(note.is_liked_by_me)
               }));
 
-              // 看看自己有没有发过，如果有，勾选分享到解题广场
-              if (currentUser.value) {
-                const myShared = data.find(n => n.user_id === currentUser.value.id);
-                if (myShared) shareToPublic.value = true;
-              }
+              shareToPublic.value = publicNotes.value.some(note => note.isMine);
             } catch (err) {
               console.error("加载公开笔记失败:", err);
+              showToast("公开笔记加载失败，请稍后重试。", "error");
             } finally {
               isLoadingPublicNotes.value = false;
             }
@@ -2965,20 +3031,16 @@
             const originalLikes = note.likes;
 
             note.isLikedByMe = !originalLiked;
-            note.likes += note.isLikedByMe ? 1 : -1;
+            note.likes = Math.max(0, note.likes + (note.isLikedByMe ? 1 : -1));
 
             try {
-              const { data: currentStatus, error } = await supabaseClient
-                .rpc('toggle_note_like', { p_note_id: note.id });
+              const { data, error } = await supabaseClient
+                .rpc('toggle_public_note_like', { p_note_id: note.id });
 
               if (error) throw error;
-
-              // 根据后端返回的真实状态进行校验/修正
-              // 如果 rpc 返回 true 表示最终状态是已点赞，false 表示未点赞
-              if (note.isLikedByMe !== currentStatus) {
-                note.isLikedByMe = currentStatus;
-                note.likes = originalLikes + (currentStatus ? 1 : (originalLiked ? -1 : 0));
-              }
+              const result = Array.isArray(data) ? data[0] : data;
+              note.isLikedByMe = Boolean(result?.is_liked);
+              note.likes = Number(result?.likes ?? originalLikes);
             } catch (err) {
               console.error("点赞操作失败:", err);
               // 发生错误，回滚 UI 状态
@@ -3069,6 +3131,8 @@
             markSubjective,
             showNote,
             noteContent,
+            noteCharacterCount,
+            MAX_NOTE_LENGTH,
             saveNote,
             saveBtnText,
             toggleTag,
@@ -3083,7 +3147,10 @@
             showAccountModal,
             showUserMenu,
             isDeletingAccount,
+            isDeletingAccountRequest,
             deleteCountdown,
+            deletePassword,
+            deleteError,
             startDeleteCountdown,
             cancelDelete,
             tagButtonClass,
