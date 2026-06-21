@@ -105,7 +105,7 @@ test("rejects malformed, missing, empty, and oversized passwords", async () => {
     malformed,
     makeRequest({ body: {} }),
     makeRequest({ body: { password: "" } }),
-    makeRequest({ body: { password: "馃攽".repeat(1025) } }),
+    makeRequest({ body: { password: "\u{1F512}".repeat(1025) } }),
   ]) {
     const response = await handler(request);
     assert.equal(response.status, 400);
