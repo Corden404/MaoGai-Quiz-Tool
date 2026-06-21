@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const test = require("node:test");
 
 const {
@@ -86,4 +87,27 @@ test("does not map A-D for non-choice questions", () => {
     resolveQuizKeyboardAction({ ...baseContext, key: "A", isChoice: false }),
     null,
   );
+});
+
+const html = fs.readFileSync("index.html", "utf8");
+
+test("loads and lifecycle-manages the quiz keyboard listener", () => {
+  assert.match(html, /<script src="src\/keyboard-shortcuts\.js"><\/script>/);
+  assert.match(
+    html,
+    /const \{ createApp, ref, computed, onMounted, onUnmounted, nextTick, watch \} = Vue;/,
+  );
+  assert.match(html, /window\.addEventListener\("keydown", handleQuizKeydown\)/);
+  assert.match(html, /window\.removeEventListener\("keydown", handleQuizKeydown\)/);
+});
+
+test("delegates resolved keyboard actions to existing answer functions", () => {
+  assert.match(html, /KeyboardShortcuts\.resolveQuizKeyboardAction/);
+  assert.match(
+    html,
+    /KeyboardShortcuts\.getAvailableShortcutOptions\(currentQuestion\.value\)/,
+  );
+  assert.match(html, /selectOption\(action\.option\)/);
+  assert.match(html, /submitAnswer\(\)/);
+  assert.match(html, /event\.preventDefault\(\)/);
 });

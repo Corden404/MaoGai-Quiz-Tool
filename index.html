@@ -1486,9 +1486,10 @@
     </div>
   </div>
 
+  <script src="src/keyboard-shortcuts.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+      const { createApp, ref, computed, onMounted, onUnmounted, nextTick, watch } = Vue;
 
       const LOCAL_STORAGE_KEY = "maogai_progress_v1";
 
@@ -2535,6 +2536,41 @@
               }
             }
           };
+
+          const isKeyboardBlockingOverlayOpen = () =>
+            showAnnouncement.value ||
+            showUpdateLogs.value ||
+            showExportModal.value ||
+            showAuth.value ||
+            showAccountModal.value ||
+            showUserMenu.value;
+
+          const handleQuizKeydown = (event) => {
+            const action = KeyboardShortcuts.resolveQuizKeyboardAction({
+              key: event.key,
+              target: event.target,
+              isQuizActive: status.value === "quiz",
+              isMemorizeMode: isMemorizeMode.value,
+              hasSubmitted: hasSubmitted.value,
+              isModalOpen: isKeyboardBlockingOverlayOpen(),
+              isChoice: isChoice.value,
+              isObjective: isObjective.value,
+              availableOptions: KeyboardShortcuts.getAvailableShortcutOptions(currentQuestion.value),
+              selectionCount: userSelection.value.length,
+            });
+
+            if (!action) return;
+            event.preventDefault();
+
+            if (action.type === "select") {
+              selectOption(action.option);
+            } else if (action.type === "submit") {
+              submitAnswer();
+            }
+          };
+
+          onMounted(() => window.addEventListener("keydown", handleQuizKeydown));
+          onUnmounted(() => window.removeEventListener("keydown", handleQuizKeydown));
 
           const giveUpAndShowAnswer = () => {
             if (hasSubmitted.value) return;
