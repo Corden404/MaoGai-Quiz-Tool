@@ -21,10 +21,9 @@ test("quiz order contains only sequence and random", () => {
   assert.doesNotMatch(modeSection[1], /val:'hard'/);
 });
 
-test("stacks the four setup sections vertically", () => {
-  assert.match(html, /<div id="app" class="max-w-5xl mx-auto p-4">/);
-  assert.match(html, /<!-- 四排纵向布局 -->\s*<div class="grid grid-cols-1 gap-3/);
-  assert.doesNotMatch(html, /md:grid-cols-4/);
+test("shows four vertical setup cards side by side on desktop", () => {
+  assert.match(html, /<div id="app" class="max-w-7xl mx-auto p-4">/);
+  assert.match(html, /<!-- 四栏并列布局 -->\s*<div class="grid grid-cols-1 md:grid-cols-4/);
   assert.match(html, /<span class="text-brand-500 font-extrabold">3\.<\/span> 刷题顺序/);
 });
 
