@@ -981,8 +981,8 @@
         </div>
       </div>
 
-      <!-- 三栏网格布局 -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5">
+      <!-- 四栏网格布局 -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-5">
 
         <!-- ① 选择章节 -->
         <div id="guide-chapter"
@@ -1048,9 +1048,9 @@
           <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2">
             <span class="text-brand-500 font-extrabold">3.</span> 刷题顺序
           </h3>
-          <div class="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-2.5">
+          <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
             <label
-              v-for="m in [{val:'sequence', label:'顺序练习', icon:'📋'}, {val:'random', label:'随机抽题', icon:'🔀'}, {val:'global_mistake', label:'全网易错', icon:'🔥'}]"
+              v-for="m in [{val:'sequence', label:'顺序练习', icon:'📋'}, {val:'random', label:'随机抽题', icon:'🔀'}]"
               :key="m.val" class="cursor-pointer block m-0">
               <input type="radio" v-model="mode" :value="m.val" class="hidden" />
               <div :class="mode === m.val
@@ -1077,23 +1077,15 @@
             <input type="number" v-model.number="randomCount"
               class="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-2 py-1 w-20 text-center outline-none focus:border-brand-500 transition" />
           </div>
-          <div v-if="mode === 'global_mistake'"
-            class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <span>错误率 ≥</span>
-            <input type="number" min="0" max="100" v-model.number="globalMistakeMinRate"
-              class="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-2 py-1 w-16 text-center outline-none focus:border-brand-500 transition" />
-            <span>%</span>
-            <span class="text-[11px] text-slate-400">（人数≥10）</span>
-          </div>
         </div>
 
         <!-- ④ 题目标签 -->
         <div id="guide-question-tags"
-          class="section-card md:col-span-3 bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
+          class="section-card bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
           <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2">
             <span class="text-brand-500 font-extrabold">4.</span> 题目标签
           </h3>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
+          <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
             <button v-for="tag in questionTagOptions" :key="tag.value"
               @click="toggleQuestionFilterTag(tag.value)"
               :aria-pressed="selectedQuestionTags.includes(tag.value)"
@@ -1122,6 +1114,14 @@
             <input type="number" min="1" v-model.number="mistakeMinCount"
               class="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-2 py-1 w-16 text-center outline-none focus:border-brand-500 transition" />
             <span>次</span>
+          </div>
+          <div v-if="selectedQuestionTags.includes('global_mistake')"
+            class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <span>错误率 ≥</span>
+            <input type="number" min="0" max="100" v-model.number="globalMistakeMinRate"
+              class="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-2 py-1 w-16 text-center outline-none focus:border-brand-500 transition" />
+            <span>%</span>
+            <span class="text-[11px] text-slate-400">（人数≥10）</span>
           </div>
         </div>
       </div>
@@ -1664,7 +1664,7 @@
               content: `
               <p class="mb-2">思政刷题助手现已上线，支持题目练习、智能刷题、进度同步和错题复习，帮助你更高效地备考。</p>
               <ul class="list-disc pl-5 space-y-1 mb-4">
-                <li><strong>模式与标签组合</strong>：顺序、随机和全网易错模式可搭配错题、星标、重点、难记标签。</li>
+                <li><strong>顺序与标签组合</strong>：顺序或随机抽题可搭配错题、全网易错、星标、重点、难记标签。</li>
                 <li><strong>进度自动同步</strong>：登录后保存练习记录，多端继续学习。</li>
                 <li><strong>错题复习</strong>：自动整理薄弱题目，方便集中巩固。</li>
                 <li><strong>笔记与隐私</strong>：可记录解析笔记，数据说明见 <a href="privacy.html" target="_blank" class="text-blue-500 hover:underline">隐私与免责声明</a>。</li>
@@ -1735,8 +1735,8 @@
               steps: [
                 { element: '#guide-chapter', popover: { title: '1. 选择章节', description: '在这里选择你需要练习的书本章节。你可以单选或多选。' } },
                 { element: '#guide-type', popover: { title: '2. 选择题型', description: '筛选你想做的题型，比如只练单选题或者简答题。' } },
-                { element: '#guide-mode', popover: { title: '3. 刷题顺序', description: '选择顺序、随机和全网易错，决定题目队列的组织方式。' } },
-                { element: '#guide-question-tags', popover: { title: '4. 题目标签', description: '可同时选择多个错题、星标、重点或难记标签，练习命中任一标签的题目。' } },
+                { element: '#guide-mode', popover: { title: '3. 刷题顺序', description: '选择顺序和随机抽题，决定题目队列的组织方式。' } },
+                { element: '#guide-question-tags', popover: { title: '4. 题目标签', description: '可同时选择多个错题、全网易错、星标、重点或难记标签，练习命中任一标签的题目。' } },
                 { element: '#guide-start', popover: { title: '准备就绪！', description: '点击开始你的刷题之旅吧！祝逢考必过！✨' } },
               ],
               onDestroyed: () => {
@@ -2141,6 +2141,7 @@
           const questionTagOptions = [
             { value: "all", label: "所有题目", icon: "📚" },
             { value: "mistake", label: "错题巩固", icon: "❌" },
+            { value: "global_mistake", label: "全网易错", icon: "🔥" },
             { value: "star", label: "星标练习", icon: "⭐" },
             { value: "key", label: "重点练习", icon: "📌" },
             { value: "hard", label: "难记练习", icon: "🧠" },
@@ -2177,7 +2178,6 @@
           const modeLabels = {
             sequence: "顺序练习",
             random: "随机抽题",
-            global_mistake: "全网易错",
           };
 
           // Type icon mapping
@@ -2415,10 +2415,11 @@
           const startQuiz = async (memorize = false) => {
             isMemorizeMode.value = memorize; // 设置当前模式
             const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
+            let globalMistakeIds = new Set();
 
             let filtered = allQuestions.value.filter((q) => selectedChapters.value.includes(q.chapter) && selectedTypes.value.includes(q.type));
 
-            if (mode.value === "global_mistake") {
+            if (selectedQuestionTags.value.includes("global_mistake")) {
               if (!supabaseClient) {
                 showToast("未连接到云端，无法获取全网易错题。", "error");
                 return;
@@ -2436,31 +2437,18 @@
 
                 if (error) throw error;
                 if (!data || data.length === 0) {
-                  showToast("由于项目处于早期阶段，目前使用人数不多，暂时无法收集到足够多的有效易错题数据，或没有符合条件的题目。", "warning");
-                  isStartingQuiz.value = false;
-                  return;
-                }
-
-                // 根据返回的 question_id 提取本地题目，并按错误率排序
-                const globalIds = data.map(item => item.question_id);
-                // 还要受当前勾选的章节和题型限制
-                filtered = filtered.filter(q => globalIds.includes(q.id));
-
-                // 将错误率数据挂载到题目对象上，方便（可选）在界面展示，同时用于排序
-                filtered.forEach(q => {
-                  const stats = data.find(d => d.question_id === q.id);
-                  if (stats) {
-                    q.global_error_rate = stats.error_rate;
+                  if (selectedQuestionTags.value.length === 1) {
+                    showToast("由于项目处于早期阶段，目前使用人数不多，暂时无法收集到足够多的有效易错题数据，或没有符合条件的题目。", "warning");
+                    isStartingQuiz.value = false;
+                    return;
                   }
-                });
+                } else {
+                  globalMistakeIds = new Set(data.map((item) => item.question_id));
 
-                // 按错误率倒序排列
-                filtered.sort((a, b) => (b.global_error_rate || 0) - (a.global_error_rate || 0));
-
-                if (filtered.length === 0) {
-                  showToast("全网易错榜单中，没有属于您当前勾选章节/题型的题目。", "warning");
-                  isStartingQuiz.value = false;
-                  return;
+                  filtered.forEach((q) => {
+                    const stats = data.find((item) => item.question_id === q.id);
+                    if (stats) q.global_error_rate = stats.error_rate;
+                  });
                 }
 
               } catch (err) {
@@ -2475,6 +2463,7 @@
               filtered,
               selectedQuestionTags.value,
               safeMistakeMinCount,
+              globalMistakeIds,
             );
 
             if (mode.value === "random") {
