@@ -2691,6 +2691,7 @@
               isQuizActive: status.value === "quiz",
               isMemorizeMode: isMemorizeMode.value,
               hasSubmitted: hasSubmitted.value,
+              subjectiveStatus: subjectiveStatus.value,
               isModalOpen: isKeyboardBlockingOverlayOpen(),
               isChoice: isChoice.value,
               isObjective: isObjective.value,
@@ -2705,6 +2706,8 @@
               selectOption(action.option);
             } else if (action.type === "submit") {
               submitAnswer();
+            } else if (action.type === "next") {
+              nextQuestion();
             }
           };
 

@@ -29,6 +29,7 @@ const baseContext = {
   isQuizActive: true,
   isMemorizeMode: false,
   hasSubmitted: false,
+  subjectiveStatus: "pending",
   isModalOpen: false,
   isChoice: true,
   isObjective: true,
@@ -69,11 +70,27 @@ test("submits with Enter only when an objective answer exists", () => {
   );
 });
 
+test("moves to the next question with Enter after an answer is revealed", () => {
+  assert.deepEqual(
+    resolveQuizKeyboardAction({ ...baseContext, key: "Enter", hasSubmitted: true }),
+    { type: "next" },
+  );
+  assert.deepEqual(
+    resolveQuizKeyboardAction({
+      ...baseContext,
+      key: "Enter",
+      isObjective: false,
+      selectionCount: 0,
+      subjectiveStatus: "correct",
+    }),
+    { type: "next" },
+  );
+});
+
 test("does not handle shortcuts in blocked interface states", () => {
   for (const overrides of [
     { isQuizActive: false },
     { isMemorizeMode: true },
-    { hasSubmitted: true },
     { isModalOpen: true },
     { target: { tagName: "INPUT" } },
   ]) {
@@ -109,5 +126,7 @@ test("delegates resolved keyboard actions to existing answer functions", () => {
   );
   assert.match(html, /selectOption\(action\.option\)/);
   assert.match(html, /submitAnswer\(\)/);
+  assert.match(html, /subjectiveStatus:\s*subjectiveStatus\.value/);
+  assert.match(html, /else if \(action\.type === "next"\)\s*\{\s*nextQuestion\(\);/);
   assert.match(html, /event\.preventDefault\(\)/);
 });

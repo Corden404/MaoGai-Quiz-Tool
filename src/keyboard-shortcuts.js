@@ -25,18 +25,24 @@
     if (
       !context.isQuizActive ||
       context.isMemorizeMode ||
-      context.hasSubmitted ||
       context.isModalOpen ||
       isEditableTarget(context.target)
     ) {
       return null;
     }
 
+    const subjectiveStatus = context.subjectiveStatus || "pending";
+    const answerRevealed =
+      context.hasSubmitted || subjectiveStatus !== "pending";
+
     if (context.key === "Enter") {
+      if (answerRevealed) return { type: "next" };
       return context.isObjective && context.selectionCount > 0
         ? { type: "submit" }
         : null;
     }
+
+    if (answerRevealed) return null;
 
     const option = String(context.key || "").toUpperCase();
     if (
