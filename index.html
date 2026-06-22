@@ -981,8 +981,8 @@
         </div>
       </div>
 
-      <!-- 四步筛选网格 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-5">
+      <!-- 三栏网格布局 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5">
 
         <!-- ① 选择章节 -->
         <div id="guide-chapter"
@@ -1046,7 +1046,7 @@
         <div id="guide-mode"
           class="section-card bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
           <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2">
-            <span class="text-brand-500 font-extrabold">3.</span> 刷题模式
+            <span class="text-brand-500 font-extrabold">3.</span> 刷题顺序
           </h3>
           <div class="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-2.5">
             <label
@@ -1089,11 +1089,11 @@
 
         <!-- ④ 题目标签 -->
         <div id="guide-question-tags"
-          class="section-card bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
+          class="section-card md:col-span-3 bg-white dark:bg-surface-800 p-4 sm:p-5 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
           <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2">
             <span class="text-brand-500 font-extrabold">4.</span> 题目标签
           </h3>
-          <div class="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-2.5">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
             <button v-for="tag in questionTagOptions" :key="tag.value"
               @click="toggleQuestionFilterTag(tag.value)"
               :aria-pressed="selectedQuestionTags.includes(tag.value)"
@@ -1735,7 +1735,7 @@
               steps: [
                 { element: '#guide-chapter', popover: { title: '1. 选择章节', description: '在这里选择你需要练习的书本章节。你可以单选或多选。' } },
                 { element: '#guide-type', popover: { title: '2. 选择题型', description: '筛选你想做的题型，比如只练单选题或者简答题。' } },
-                { element: '#guide-mode', popover: { title: '3. 刷题模式', description: '选择顺序、随机和全网易错，决定题目队列的组织方式。' } },
+                { element: '#guide-mode', popover: { title: '3. 刷题顺序', description: '选择顺序、随机和全网易错，决定题目队列的组织方式。' } },
                 { element: '#guide-question-tags', popover: { title: '4. 题目标签', description: '可同时选择多个错题、星标、重点或难记标签，练习命中任一标签的题目。' } },
                 { element: '#guide-start', popover: { title: '准备就绪！', description: '点击开始你的刷题之旅吧！祝逢考必过！✨' } },
               ],

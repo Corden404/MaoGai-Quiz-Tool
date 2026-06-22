@@ -21,8 +21,18 @@ test("quiz mode contains only sequence random and global mistake", () => {
   assert.doesNotMatch(modeSection[1], /val:'hard'/);
 });
 
+test("preserves the original three-column setup layout", () => {
+  assert.match(html, /<!-- 三栏网格布局 -->\s*<div class="grid grid-cols-1 md:grid-cols-3/);
+  assert.match(html, /<span class="text-brand-500 font-extrabold">3\.<\/span> 刷题顺序/);
+});
+
 test("renders a fourth mandatory multi-select question tag section", () => {
+  assert.match(
+    html,
+    /<div id="guide-question-tags"\s+class="section-card md:col-span-3/,
+  );
   assert.match(html, /<span class="text-brand-500 font-extrabold">4\.<\/span> 题目标签/);
+  assert.match(html, /<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5/);
   assert.match(html, /v-for="tag in questionTagOptions"/);
   assert.match(html, /@click="toggleQuestionFilterTag\(tag\.value\)"/);
   assert.match(html, /selectedQuestionTags\.includes\(tag\.value\)/);
@@ -71,6 +81,7 @@ test("an empty combined result clears the starting state", () => {
 });
 
 test("onboarding teaches modes and combinable question tags separately", () => {
+  assert.match(html, /element: '#guide-mode'[\s\S]*title: '3\. 刷题顺序'/);
   assert.match(html, /element: '#guide-mode'[\s\S]*顺序、随机和全网易错/);
   assert.match(html, /element: '#guide-question-tags'[\s\S]*可同时选择多个/);
 });
