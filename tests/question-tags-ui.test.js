@@ -41,3 +41,30 @@ test("setup summary includes both mode and question tags", () => {
   );
   assert.match(html, /QuestionTags\.getQuestionTagSummary/);
 });
+
+test("applies question tags after global filtering and before randomization", () => {
+  const startQuizStart = html.indexOf("const startQuiz = async");
+  const startQuizEnd = html.indexOf("const loadQuestionState", startQuizStart);
+  const startQuiz = html.slice(startQuizStart, startQuizEnd);
+  const globalFilter = startQuiz.indexOf('if (mode.value === "global_mistake")');
+  const tagFilter = startQuiz.indexOf("QuestionTags.filterQuestionsByTags");
+  const randomFilter = startQuiz.indexOf('if (mode.value === "random")');
+
+  assert.ok(globalFilter >= 0, "global mistake filtering should remain");
+  assert.ok(tagFilter > globalFilter, "question tags should run after global filtering");
+  assert.ok(randomFilter > tagFilter, "randomization should run after question tags");
+  assert.match(startQuiz, /selectedQuestionTags\.value/);
+  assert.match(startQuiz, /safeMistakeMinCount/);
+});
+
+test("removes legacy mutually exclusive mode branches", () => {
+  assert.doesNotMatch(html, /mode\.value === "mistake"/);
+  assert.doesNotMatch(html, /\["star", "key", "hard"\]\.includes\(mode\.value\)/);
+});
+
+test("an empty combined result clears the starting state", () => {
+  assert.match(
+    html,
+    /if \(filtered\.length === 0\) \{\s*isStartingQuiz\.value = false;\s*showToast\("没有找到符合条件的题目", "info"\);/,
+  );
+});
