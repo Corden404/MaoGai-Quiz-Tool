@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const test = require("node:test");
 
 const html = fs.readFileSync("index.html", "utf8");
+const readme = fs.readFileSync("README.md", "utf8");
 
 test("loads the shared question tag module", () => {
   assert.match(html, /<script src="src\/question-tags\.js"><\/script>/);
@@ -67,4 +68,15 @@ test("an empty combined result clears the starting state", () => {
     html,
     /if \(filtered\.length === 0\) \{\s*isStartingQuiz\.value = false;\s*showToast\("没有找到符合条件的题目", "info"\);/,
   );
+});
+
+test("onboarding teaches modes and combinable question tags separately", () => {
+  assert.match(html, /element: '#guide-mode'[\s\S]*顺序、随机和全网易错/);
+  assert.match(html, /element: '#guide-question-tags'[\s\S]*可同时选择多个/);
+});
+
+test("README describes combinable OR-style question tags", () => {
+  assert.match(readme, /顺序练习、随机抽题和全网易错/);
+  assert.match(readme, /错题、星标、重点和难记标签可同时选择/);
+  assert.match(readme, /命中任一所选标签/);
 });

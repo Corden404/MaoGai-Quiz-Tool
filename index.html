@@ -1664,7 +1664,7 @@
               content: `
               <p class="mb-2">思政刷题助手现已上线，支持题目练习、智能刷题、进度同步和错题复习，帮助你更高效地备考。</p>
               <ul class="list-disc pl-5 space-y-1 mb-4">
-                <li><strong>多种练习模式</strong>：顺序、随机、错题巩固等模式自由切换。</li>
+                <li><strong>模式与标签组合</strong>：顺序、随机和全网易错模式可搭配错题、星标、重点、难记标签。</li>
                 <li><strong>进度自动同步</strong>：登录后保存练习记录，多端继续学习。</li>
                 <li><strong>错题复习</strong>：自动整理薄弱题目，方便集中巩固。</li>
                 <li><strong>笔记与隐私</strong>：可记录解析笔记，数据说明见 <a href="privacy.html" target="_blank" class="text-blue-500 hover:underline">隐私与免责声明</a>。</li>
@@ -1735,7 +1735,8 @@
               steps: [
                 { element: '#guide-chapter', popover: { title: '1. 选择章节', description: '在这里选择你需要练习的书本章节。你可以单选或多选。' } },
                 { element: '#guide-type', popover: { title: '2. 选择题型', description: '筛选你想做的题型，比如只练单选题或者简答题。' } },
-                { element: '#guide-mode', popover: { title: '3. 刷题模式', description: '提供多种聪明模式，建议后期多用【错题巩固】和【全网易错】。' } },
+                { element: '#guide-mode', popover: { title: '3. 刷题模式', description: '选择顺序、随机和全网易错，决定题目队列的组织方式。' } },
+                { element: '#guide-question-tags', popover: { title: '4. 题目标签', description: '可同时选择多个错题、星标、重点或难记标签，练习命中任一标签的题目。' } },
                 { element: '#guide-start', popover: { title: '准备就绪！', description: '点击开始你的刷题之旅吧！祝逢考必过！✨' } },
               ],
               onDestroyed: () => {
