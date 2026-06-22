@@ -22,6 +22,7 @@ test("quiz order contains only sequence and random", () => {
 });
 
 test("uses a four-column desktop setup layout", () => {
+  assert.match(html, /<div id="app" class="max-w-7xl mx-auto p-4">/);
   assert.match(html, /<!-- 四栏网格布局 -->\s*<div class="grid grid-cols-1 md:grid-cols-4/);
   assert.match(html, /<span class="text-brand-500 font-extrabold">3\.<\/span> 刷题顺序/);
 });
