@@ -17,8 +17,8 @@ test("normalizes empty and all-inclusive selections to all only", () => {
 
 test("keeps unique valid specific tags in display order", () => {
   assert.deepEqual(
-    normalizeQuestionTags(["hard", "star", "hard", "mistake"]),
-    ["mistake", "star", "hard"],
+    normalizeQuestionTags(["hard", "global_mistake", "star", "hard", "mistake"]),
+    ["mistake", "global_mistake", "star", "hard"],
   );
 });
 
@@ -70,7 +70,27 @@ test("a question matching multiple tags is returned only once", () => {
 test("builds a readable normalized selection summary", () => {
   assert.equal(getQuestionTagSummary(["all"]), "所有题目");
   assert.equal(
-    getQuestionTagSummary(["hard", "mistake", "star"]),
-    "错题巩固、星标练习、难记练习",
+    getQuestionTagSummary(["hard", "global_mistake", "mistake", "star"]),
+    "错题巩固、全网易错、星标练习、难记练习",
   );
+});
+
+test("global mistakes join local tags with OR semantics", () => {
+  const result = filterQuestionsByTags(
+    [
+      { id: "global-only" },
+      { id: "star-only", tag_star: true },
+      { id: "both", tag_star: true },
+      { id: "plain" },
+    ],
+    ["global_mistake", "star"],
+    1,
+    new Set(["global-only", "both"]),
+  );
+
+  assert.deepEqual(result.map((question) => question.id), [
+    "global-only",
+    "star-only",
+    "both",
+  ]);
 });
