@@ -9,6 +9,13 @@ test("loads the shared question tag module", () => {
   assert.match(html, /<script src="src\/question-tags\.js"><\/script>/);
 });
 
+test("cache-busts the generated stylesheet after layout changes", () => {
+  assert.match(
+    html,
+    /<link rel="stylesheet" href="style\.css\?v=question-tags-four-column">/,
+  );
+});
+
 test("quiz order contains only sequence and random", () => {
   const modeSection = html.match(/<!-- ③ 刷题模式 -->([\s\S]*?)<!-- ④ 题目标签 -->/);
   assert.ok(modeSection, "mode and question-tag section boundary should exist");
