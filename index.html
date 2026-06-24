@@ -2694,6 +2694,7 @@
               subjectiveStatus: subjectiveStatus.value,
               isModalOpen: isKeyboardBlockingOverlayOpen(),
               isChoice: isChoice.value,
+              isJudgment: isJudgment.value,
               isObjective: isObjective.value,
               availableOptions: KeyboardShortcuts.getAvailableShortcutOptions(currentQuestion.value),
               selectionCount: userSelection.value.length,
@@ -2706,6 +2707,8 @@
               selectOption(action.option);
             } else if (action.type === "submit") {
               submitAnswer();
+            } else if (action.type === "previous") {
+              prevQuestion();
             } else if (action.type === "next") {
               nextQuestion();
             }

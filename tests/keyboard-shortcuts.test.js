@@ -48,6 +48,24 @@ test("maps upper and lower case A-D to displayed options", () => {
   });
 });
 
+test("maps A and B to judgment answers", () => {
+  const judgmentContext = {
+    ...baseContext,
+    isChoice: false,
+    isJudgment: true,
+    availableOptions: ["A", "B", "C", "D"],
+  };
+
+  assert.deepEqual(resolveQuizKeyboardAction({ ...judgmentContext, key: "a" }), {
+    type: "select",
+    option: "正确",
+  });
+  assert.deepEqual(resolveQuizKeyboardAction({ ...judgmentContext, key: "B" }), {
+    type: "select",
+    option: "错误",
+  });
+});
+
 test("ignores unavailable and unrelated letter keys", () => {
   assert.equal(
     resolveQuizKeyboardAction({ ...baseContext, key: "B", availableOptions: ["A"] }),
@@ -87,6 +105,19 @@ test("moves to the next question with Enter after an answer is revealed", () => 
   );
 });
 
+test("moves between questions with arrow keys only after an answer is revealed", () => {
+  assert.deepEqual(
+    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowRight", hasSubmitted: true }),
+    { type: "next" },
+  );
+  assert.deepEqual(
+    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowLeft", hasSubmitted: true }),
+    { type: "previous" },
+  );
+  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "ArrowRight" }), null);
+  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "ArrowLeft" }), null);
+});
+
 test("does not handle shortcuts in blocked interface states", () => {
   for (const overrides of [
     { isQuizActive: false },
@@ -101,7 +132,7 @@ test("does not handle shortcuts in blocked interface states", () => {
 
 test("does not map A-D for non-choice questions", () => {
   assert.equal(
-    resolveQuizKeyboardAction({ ...baseContext, key: "A", isChoice: false }),
+    resolveQuizKeyboardAction({ ...baseContext, key: "A", isChoice: false, isJudgment: false }),
     null,
   );
 });
@@ -126,7 +157,9 @@ test("delegates resolved keyboard actions to existing answer functions", () => {
   );
   assert.match(html, /selectOption\(action\.option\)/);
   assert.match(html, /submitAnswer\(\)/);
+  assert.match(html, /isJudgment:\s*isJudgment\.value/);
   assert.match(html, /subjectiveStatus:\s*subjectiveStatus\.value/);
+  assert.match(html, /else if \(action\.type === "previous"\)\s*\{\s*prevQuestion\(\);/);
   assert.match(html, /else if \(action\.type === "next"\)\s*\{\s*nextQuestion\(\);/);
   assert.match(html, /event\.preventDefault\(\)/);
 });

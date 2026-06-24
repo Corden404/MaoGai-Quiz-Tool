@@ -6,6 +6,7 @@
   }
 })(typeof self !== "undefined" ? self : this, function () {
   const SHORTCUT_OPTIONS = ["A", "B", "C", "D"];
+  const JUDGMENT_SHORTCUT_OPTIONS = { A: "正确", B: "错误" };
   const EDITABLE_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
   const getAvailableShortcutOptions = (question = {}) => {
@@ -42,9 +43,17 @@
         : null;
     }
 
-    if (answerRevealed) return null;
+    if (answerRevealed) {
+      if (context.key === "ArrowRight") return { type: "next" };
+      if (context.key === "ArrowLeft") return { type: "previous" };
+      return null;
+    }
 
     const option = String(context.key || "").toUpperCase();
+    if (context.isJudgment && JUDGMENT_SHORTCUT_OPTIONS[option]) {
+      return { type: "select", option: JUDGMENT_SHORTCUT_OPTIONS[option] };
+    }
+
     if (
       context.isChoice &&
       SHORTCUT_OPTIONS.includes(option) &&
