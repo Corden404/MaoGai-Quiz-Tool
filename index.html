@@ -55,6 +55,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="./questions.js" defer></script>
   <script src="./mayuan_questions.js" defer></script>
+  <script src="./src/answer-sheet.js" defer></script>
   <script src="./src/export-mistakes.js" defer></script>
   <style>
     /* === Transitions === */
@@ -1185,6 +1186,43 @@
               v-if="stats.wrong > 0">✗ {{ stats.wrong }}</span>
           </div>
         </div>
+        <button @click="showAnswerSheet = true"
+          class="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold px-4 py-2 rounded-xl shadow-sm transition focus:outline-none focus:ring-2 focus:ring-brand-500">
+          答题卡
+        </button>
+      </div>
+
+      <div v-cloak v-if="showAnswerSheet"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4 fade-enter-active">
+        <div
+          class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg w-full max-h-[85vh] overflow-y-auto custom-scrollbar border border-slate-200/60 dark:border-slate-700/40">
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100">答题卡</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                已做 {{ answerSheetSummary.answered }} / {{ answerSheetSummary.total }}，未做 {{ answerSheetSummary.unanswered }}
+              </p>
+            </div>
+            <button @click="showAnswerSheet = false"
+              class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-2xl leading-none transition"
+              aria-label="关闭答题卡">×</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-brand-500"></span>当前</span>
+            <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span>已做</span>
+            <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600"></span>未做</span>
+          </div>
+
+          <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <button v-for="(question, index) in queue" :key="question.id || index"
+              @click="goToQuestion(index)"
+              :class="answerSheetButtonClass(question, index)"
+              class="h-10 rounded-xl border text-sm font-extrabold transition focus:outline-none focus:ring-2 focus:ring-brand-500">
+              {{ index + 1 }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- 题目卡片 -->
@@ -1480,7 +1518,7 @@
 
       <template v-if="!isMemorizeMode">
         <!-- 统计卡片 -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
             <div class="text-blue-500 dark:text-blue-400 text-sm font-bold uppercase">总题数</div>
             <div class="text-4xl font-bold text-blue-700 dark:text-blue-300 mt-2">{{ queue.length }}</div>
@@ -1492,6 +1530,10 @@
           <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
             <div class="text-red-500 dark:text-red-400 text-sm font-bold uppercase">错误</div>
             <div class="text-4xl font-bold text-red-700 dark:text-red-300 mt-2">{{ stats.wrong }}</div>
+          </div>
+          <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50">
+            <div class="text-amber-700 dark:text-amber-400 text-sm font-bold uppercase">未作答</div>
+            <div class="text-4xl font-bold text-amber-700 dark:text-amber-400 mt-2">{{ answerSheetSummary.unanswered }}</div>
           </div>
         </div>
 
@@ -2197,6 +2239,7 @@
           const isCorrect = ref(false);
           const subjectiveStatus = ref("pending");
           const showErrorCount = ref(false);
+          const showAnswerSheet = ref(false);
           const textarea = ref(null);
 
           // 笔记相关
@@ -2323,6 +2366,10 @@
             if (queue.value.length === 0) return 0;
             return ((currentIndex.value + 1) / queue.value.length) * 100;
           });
+
+          const answerSheetSummary = computed(() =>
+            AnswerSheet.getAnswerSheetSummary(queue.value, attempts.value),
+          );
 
           const resultClass = computed(() => {
             if (isMemorizeMode.value) return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50";
@@ -2564,6 +2611,24 @@
             });
           };
 
+          const answerSheetButtonClass = (question, index) => {
+            if (index === currentIndex.value) {
+              return "bg-brand-500 text-white border-brand-500 shadow-sm";
+            }
+            if (AnswerSheet.isQuestionAnswered(question, attempts.value[question.id])) {
+              return "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100";
+            }
+            return "bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700";
+          };
+
+          const goToQuestion = (index) => {
+            if (index < 0 || index >= queue.value.length) return;
+            storeCurrentAttempt();
+            currentIndex.value = index;
+            loadQuestionState();
+            showAnswerSheet.value = false;
+          };
+
           const autoResize = (e) => {
             e.target.style.height = "auto";
             e.target.style.height = e.target.scrollHeight + "px";
@@ -2680,6 +2745,7 @@
             showAnnouncement.value ||
             showUpdateLogs.value ||
             showExportModal.value ||
+            showAnswerSheet.value ||
             showAuth.value ||
             showAccountModal.value ||
             showUserMenu.value;
@@ -3172,6 +3238,10 @@
             prevQuestion,
             restartQuiz,
             showErrorCount,
+            showAnswerSheet,
+            answerSheetSummary,
+            answerSheetButtonClass,
+            goToQuestion,
             resultClass,
             resultTitle,
             autoResize,
