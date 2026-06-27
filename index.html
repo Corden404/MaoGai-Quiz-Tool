@@ -1235,7 +1235,7 @@
     <div v-cloak v-if="status === 'quiz'" class="relative pb-28 max-w-3xl mx-auto">
       <!-- 顶部栏：进度与退出 -->
       <div class="flex justify-between items-center mb-4">
-        <button @click="status='setup'"
+        <button @click="goToSetup"
           class="border border-red-200 bg-red-50 hover:bg-red-200 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:hover:bg-red-900/50 dark:text-red-300 text-sm font-bold px-4 py-2 rounded-xl shadow-sm transition focus:outline-none focus:ring-2 focus:ring-red-400">
           退出
         </button>
@@ -1634,7 +1634,7 @@
       </template>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <button @click="status='setup'"
+        <button @click="goToSetup"
           class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-xl font-bold transition btn-float">
           返回首页
         </button>
@@ -2332,6 +2332,67 @@
 
           let syncTimeout = null;
           let syncTargetUserId = null;
+          const QUIZ_HISTORY_STATE_KEY = "maogaiQuizStatus";
+          let quizHistoryDepth = 0;
+
+          const canUseQuizHistory = () =>
+            typeof window !== "undefined" &&
+            window.history &&
+            typeof window.history.pushState === "function" &&
+            typeof window.history.replaceState === "function";
+
+          const getQuizHistoryUrl = (nextStatus) => {
+            const baseUrl = `${window.location.pathname}${window.location.search}`;
+            return nextStatus === "setup" ? baseUrl : `${baseUrl}#${nextStatus}`;
+          };
+
+          const getQuizHistoryStatus = (state) =>
+            state && state[QUIZ_HISTORY_STATE_KEY] ? state[QUIZ_HISTORY_STATE_KEY] : "setup";
+
+          const replaceQuizHistory = (nextStatus, depth = quizHistoryDepth) => {
+            if (!canUseQuizHistory()) return;
+            quizHistoryDepth = depth;
+            window.history.replaceState({
+              [QUIZ_HISTORY_STATE_KEY]: nextStatus,
+              depth,
+            }, "", getQuizHistoryUrl(nextStatus));
+          };
+
+          const pushQuizHistory = (nextStatus) => {
+            if (!canUseQuizHistory()) return;
+            if (getQuizHistoryStatus(window.history.state) === nextStatus) return;
+            const nextDepth = quizHistoryDepth + 1;
+            quizHistoryDepth = nextDepth;
+            window.history.pushState({
+              [QUIZ_HISTORY_STATE_KEY]: nextStatus,
+              depth: nextDepth,
+            }, "", getQuizHistoryUrl(nextStatus));
+          };
+
+          const applyQuizHistoryStatus = (nextStatus) => {
+            if ((nextStatus === "quiz" || nextStatus === "result") && queue.value.length === 0) {
+              status.value = "setup";
+              replaceQuizHistory("setup", 0);
+              return;
+            }
+            status.value = nextStatus === "quiz" || nextStatus === "result" ? nextStatus : "setup";
+          };
+
+          const handleQuizHistoryPop = (event) => {
+            quizHistoryDepth = Number(event.state?.depth || 0);
+            applyQuizHistoryStatus(getQuizHistoryStatus(event.state));
+          };
+
+          const goToSetup = () => {
+            status.value = "setup";
+            if (canUseQuizHistory() && quizHistoryDepth > 0) {
+              const depth = quizHistoryDepth;
+              quizHistoryDepth = 0;
+              window.history.go(-depth);
+              return;
+            }
+            replaceQuizHistory("setup", 0);
+          };
 
           const cancelPendingSync = () => {
             if (syncTimeout) clearTimeout(syncTimeout);
@@ -2397,6 +2458,12 @@
             });
             window.addEventListener("beforeunload", flushSync);
           });
+
+          onMounted(() => {
+            replaceQuizHistory("setup", 0);
+            window.addEventListener("popstate", handleQuizHistoryPop);
+          });
+          onUnmounted(() => window.removeEventListener("popstate", handleQuizHistoryPop));
 
           // --- 3. 计算属性 ---
           const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
@@ -2609,6 +2676,7 @@
             attempts.value = {};
             loadQuestionState();
             status.value = "quiz";
+            pushQuizHistory("quiz");
             isStartingQuiz.value = false; // 成功进入答题后，重置按钮状态
           };
 
@@ -3293,6 +3361,7 @@
               loadQuestionState();
             } else {
               status.value = "result";
+              pushQuizHistory("result");
             }
           };
 
@@ -3348,6 +3417,7 @@
             selectAllChapters,
             startQuiz,
             isStartingQuiz,
+            goToSetup,
             nextQuestion,
             prevQuestion,
             restartQuiz,

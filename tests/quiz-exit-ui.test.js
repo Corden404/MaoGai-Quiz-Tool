@@ -6,7 +6,7 @@ const html = fs.readFileSync("index.html", "utf8");
 const css = fs.readFileSync("style.css", "utf8");
 
 test("quiz exit control is a subdued red explicit button in light and dark modes", () => {
-  const match = html.match(/<button @click="status='setup'"\s+class="([^"]+)">\s*退出\s*<\/button>/);
+  const match = html.match(/<button @click="goToSetup"\s+class="([^"]+)">\s*退出\s*<\/button>/);
 
   assert.ok(match, "quiz exit control should render plain 退出 text");
   assert.match(match[1], /bg-red-50/);
