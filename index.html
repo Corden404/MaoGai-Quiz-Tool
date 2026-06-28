@@ -245,6 +245,17 @@
       display: flex;
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .quiz-question-card {
+        transition: none !important;
+      }
+
+      .quiz-question-card * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     .desktop-quiz-nav {
       display: none;
       width: 100%;

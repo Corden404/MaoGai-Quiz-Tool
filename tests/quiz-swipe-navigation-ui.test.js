@@ -77,6 +77,13 @@ test("question card animation uses shared timing constants and drag progress sty
   assert.match(html, /questionCardTransitionMs\.value = QUESTION_CARD_SNAP_MS;/);
 });
 
+test("question card respects reduced motion preferences", () => {
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.quiz-question-card\s*\{[\s\S]*transition: none !important;/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.quiz-question-card\s+\*\s*\{[\s\S]*animation-duration: 0\.01ms !important;/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*\.quiz-question-card\s+\*\s*\{[\s\S]*transition-duration: 0\.01ms !important;/);
+});
+
 test("mobile previous and next buttons use the card transition animation", () => {
   const quizContent = html.match(/<!-- 题目卡片 -->[\s\S]*?<!-- 🚀 固定底部操作栏/);
   const bottomBar = html.match(/<!-- 🚀 固定底部操作栏[\s\S]*?<!-- 3\. 结算页面/);
