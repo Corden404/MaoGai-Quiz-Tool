@@ -37,6 +37,7 @@ export_questions_only_md.py
 
 # AI
 GEMINI.md
+docs/
 # Local config (contains keys)
 
 ROADMAP.md  
