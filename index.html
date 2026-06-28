@@ -50,7 +50,6 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" defer></script>
   <!-- 引入 driver.js 核心逻辑 -->
   <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
   <!-- 引入配置文件与 Supabase SDK -->
   <script src="./config.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2807,6 +2806,28 @@
             downloadBlob(blob, filename);
           };
 
+          const HTML2PDF_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
+          let html2pdfLoadPromise = null;
+
+          const loadHtml2pdfLibrary = () => {
+            if (typeof window.html2pdf === "function") return Promise.resolve(true);
+            if (html2pdfLoadPromise) return html2pdfLoadPromise;
+
+            html2pdfLoadPromise = new Promise((resolve) => {
+              const script = document.createElement("script");
+              script.src = HTML2PDF_SCRIPT_SRC;
+              script.async = true;
+              script.onload = () => resolve(typeof window.html2pdf === "function");
+              script.onerror = () => {
+                html2pdfLoadPromise = null;
+                resolve(false);
+              };
+              document.head.appendChild(script);
+            });
+
+            return html2pdfLoadPromise;
+          };
+
           const createPdfExportElement = (html) => {
             const parsed = new DOMParser().parseFromString(html, "text/html");
             const container = document.createElement("div");
@@ -2827,7 +2848,7 @@
           };
 
           const downloadPdfFile = async (html, filenameBase) => {
-            if (typeof window.html2pdf !== "function") return false;
+            if (!(await loadHtml2pdfLibrary())) return false;
 
             const element = createPdfExportElement(html);
             document.body.appendChild(element);
