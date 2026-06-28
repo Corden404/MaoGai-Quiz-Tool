@@ -231,7 +231,7 @@
     .quiz-question-card {
       position: relative;
       z-index: 2;
-      will-change: transform;
+      will-change: transform, opacity;
     }
 
     .quiz-question-card-preview {
@@ -1644,11 +1644,11 @@
           </div>
 
           <div class="mobile-quiz-nav quiz-nav-actions flex flex-row gap-3">
-            <button @click="prevQuestion" :disabled="currentIndex === 0"
+            <button @click="prevQuestionWithAnimation" :disabled="currentIndex === 0"
               class="flex-[1] bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
               ← 上一题
             </button>
-            <button @click="nextQuestion"
+            <button @click="nextQuestionWithAnimation"
               class="flex-[2] bg-slate-800 dark:bg-slate-600 hover:bg-slate-900 dark:hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-lg">
               {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
           </div>
@@ -2397,6 +2397,10 @@
           const questionCardTransitionMs = ref(0);
           const questionCardViewportMinHeight = ref("");
           const isQuestionCardAnimating = ref(false);
+          const QUESTION_CARD_EXIT_MS = 220;
+          const QUESTION_CARD_SNAP_MS = 200;
+          const QUESTION_CARD_SETTLE_BUFFER_MS = 24;
+          const QUESTION_CARD_TRANSITION_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
           let questionTouchStart = null;
           let questionCardAnimationTimer = null;
 
@@ -2599,16 +2603,28 @@
               : {}
           ));
 
-          const questionCardStyle = computed(() => {
-            const transition = questionCardTransitionMs.value > 0
-              ? `transform ${questionCardTransitionMs.value}ms cubic-bezier(0.16, 1, 0.3, 1)`
-              : "none";
+          const questionCardTransition = computed(() => (
+            questionCardTransitionMs.value > 0
+              ? `transform ${questionCardTransitionMs.value}ms ${QUESTION_CARD_TRANSITION_EASING}, opacity ${questionCardTransitionMs.value}ms ease`
+              : "none"
+          ));
 
-            return {
-              transform: `translate3d(${questionCardOffsetX.value}px, 0, 0)`,
-              transition,
-            };
+          const questionCardDragProgress = computed(() => {
+            const slideDistance = getQuestionCardSlideDistance();
+            if (slideDistance <= 0) return 0;
+            return Math.min(Math.abs(questionCardOffsetX.value) / slideDistance, 1);
           });
+
+          const questionCardScale = computed(() => 1 - questionCardDragProgress.value * 0.012);
+          const questionCardOpacity = computed(() => 1 - questionCardDragProgress.value * 0.1);
+          const adjacentQuestionCardScale = computed(() => 0.985 + questionCardDragProgress.value * 0.015);
+          const adjacentQuestionCardOpacity = computed(() => Math.min(1, 0.72 + questionCardDragProgress.value * 0.28));
+
+          const questionCardStyle = computed(() => ({
+            transform: `translate3d(${questionCardOffsetX.value}px, 0, 0) scale(${questionCardScale.value})`,
+            opacity: questionCardOpacity.value,
+            transition: questionCardTransition.value,
+          }));
 
           const adjacentPreviewIndex = computed(() => {
             if (questionCardOffsetX.value < 0 && currentIndex.value < queue.value.length - 1) {
@@ -2627,13 +2643,11 @@
           const adjacentQuestionCardStyle = computed(() => {
             const slideDistance = getQuestionCardSlideDistance();
             const direction = adjacentPreviewIndex.value > currentIndex.value ? 1 : -1;
-            const transition = questionCardTransitionMs.value > 0
-              ? `transform ${questionCardTransitionMs.value}ms cubic-bezier(0.16, 1, 0.3, 1)`
-              : "none";
 
             return {
-              transform: `translate3d(${questionCardOffsetX.value + direction * slideDistance}px, 0, 0)`,
-              transition,
+              transform: `translate3d(${questionCardOffsetX.value + direction * slideDistance}px, 0, 0) scale(${adjacentQuestionCardScale.value})`,
+              opacity: adjacentQuestionCardOpacity.value,
+              transition: questionCardTransition.value,
             };
           });
 
@@ -2953,14 +2967,23 @@
           };
 
           const snapQuestionCardBack = () => {
-            questionCardTransitionMs.value = 180;
-            questionCardOffsetX.value = 0;
             clearQuestionCardAnimationTimer();
+            if (Math.abs(questionCardOffsetX.value) < 1) {
+              questionCardTransitionMs.value = 0;
+              questionCardViewportMinHeight.value = "";
+              isQuestionCardAnimating.value = false;
+              return;
+            }
+
+            isQuestionCardAnimating.value = true;
+            questionCardTransitionMs.value = QUESTION_CARD_SNAP_MS;
+            questionCardOffsetX.value = 0;
             questionCardAnimationTimer = window.setTimeout(() => {
               questionCardTransitionMs.value = 0;
               questionCardViewportMinHeight.value = "";
+              isQuestionCardAnimating.value = false;
               questionCardAnimationTimer = null;
-            }, 190);
+            }, QUESTION_CARD_SNAP_MS + QUESTION_CARD_SETTLE_BUFFER_MS);
           };
 
           const getQuestionCardSlideDistance = () => {
@@ -2978,30 +3001,41 @@
           };
 
           const animateQuestionCardTransition = (action) => {
-            if (isQuestionCardAnimating.value || !canNavigateBySwipe(action)) {
+            if (isQuestionCardAnimating.value) return;
+            if (!canNavigateBySwipe(action)) {
               snapQuestionCardBack();
               return;
             }
 
             const slideDistance = getQuestionCardSlideDistance();
             const exitOffset = action === "next" ? -slideDistance : slideDistance;
+            const shouldStagePreview = Math.abs(questionCardOffsetX.value) < 1;
 
             clearQuestionCardAnimationTimer();
             isQuestionCardAnimating.value = true;
-            questionCardTransitionMs.value = 180;
-            questionCardOffsetX.value = exitOffset;
+            if (shouldStagePreview) {
+              questionCardTransitionMs.value = 0;
+              questionCardOffsetX.value = action === "next" ? -0.1 : 0.1;
+            }
+            nextTick(updateQuestionCardViewportHeight);
 
             questionCardAnimationTimer = window.setTimeout(() => {
-              if (action === "previous") prevQuestion();
-              if (action === "next") nextQuestion();
+              questionCardTransitionMs.value = QUESTION_CARD_EXIT_MS;
+              questionCardOffsetX.value = exitOffset;
+              nextTick(updateQuestionCardViewportHeight);
 
-              if (status.value !== "quiz") {
+              questionCardAnimationTimer = window.setTimeout(() => {
+                if (action === "previous") prevQuestion();
+                if (action === "next") nextQuestion();
+
+                if (status.value !== "quiz") {
+                  resetQuestionCardMotion();
+                  return;
+                }
+
                 resetQuestionCardMotion();
-                return;
-              }
-
-              resetQuestionCardMotion();
-            }, 190);
+              }, QUESTION_CARD_EXIT_MS + QUESTION_CARD_SETTLE_BUFFER_MS);
+            }, shouldStagePreview ? QUESTION_CARD_SETTLE_BUFFER_MS : 0);
           };
 
           const handleQuestionTouchStart = (event) => {
@@ -3630,6 +3664,9 @@
             }
           };
 
+          const prevQuestionWithAnimation = () => animateQuestionCardTransition("previous");
+          const nextQuestionWithAnimation = () => animateQuestionCardTransition("next");
+
           return {
             status,
             config,
@@ -3677,6 +3714,8 @@
             goToSetup,
             nextQuestion,
             prevQuestion,
+            nextQuestionWithAnimation,
+            prevQuestionWithAnimation,
             restartQuiz,
             showErrorCount,
             showAnswerSheet,

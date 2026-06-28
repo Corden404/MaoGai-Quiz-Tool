@@ -62,6 +62,37 @@ test("completed swipe settles on the adjacent card without a second enter animat
   assert.match(transitionHandler[0], /resetQuestionCardMotion\(\);/);
 });
 
+test("question card animation uses shared timing constants and drag progress styles", () => {
+  assert.match(html, /const QUESTION_CARD_EXIT_MS = 220;/);
+  assert.match(html, /const QUESTION_CARD_SNAP_MS = 200;/);
+  assert.match(html, /const QUESTION_CARD_SETTLE_BUFFER_MS = 24;/);
+  assert.match(html, /const QUESTION_CARD_TRANSITION_EASING = "cubic-bezier\(0\.22, 1, 0\.36, 1\)";/);
+  assert.match(html, /const questionCardTransition = computed\(\(\) =>/);
+  assert.match(html, /const questionCardDragProgress = computed\(\(\) =>/);
+  assert.match(html, /const questionCardScale = computed\(\(\) =>/);
+  assert.match(html, /const adjacentQuestionCardScale = computed\(\(\) =>/);
+  assert.match(html, /opacity: questionCardOpacity\.value,/);
+  assert.match(html, /opacity: adjacentQuestionCardOpacity\.value,/);
+  assert.match(html, /questionCardTransitionMs\.value = QUESTION_CARD_EXIT_MS;/);
+  assert.match(html, /questionCardTransitionMs\.value = QUESTION_CARD_SNAP_MS;/);
+});
+
+test("mobile previous and next buttons use the card transition animation", () => {
+  const quizContent = html.match(/<!-- 题目卡片 -->[\s\S]*?<!-- 🚀 固定底部操作栏/);
+  const bottomBar = html.match(/<!-- 🚀 固定底部操作栏[\s\S]*?<!-- 3\. 结算页面/);
+
+  assert.ok(quizContent, "quiz content before bottom action bar should exist");
+  assert.ok(bottomBar, "bottom action bar should exist");
+  assert.match(bottomBar[0], /@click="prevQuestionWithAnimation"/);
+  assert.match(bottomBar[0], /@click="nextQuestionWithAnimation"/);
+  assert.match(quizContent[0], /@click="prevQuestion"/);
+  assert.match(quizContent[0], /@click="nextQuestion"/);
+  assert.match(html, /const prevQuestionWithAnimation = \(\) => animateQuestionCardTransition\("previous"\);/);
+  assert.match(html, /const nextQuestionWithAnimation = \(\) => animateQuestionCardTransition\("next"\);/);
+  assert.match(html, /prevQuestionWithAnimation,/);
+  assert.match(html, /nextQuestionWithAnimation,/);
+});
+
 test("swipe dragging does not block native vertical page scrolling", () => {
   const touchMoveHandler = html.match(/const handleQuestionTouchMove = \(event\) => \{[\s\S]*?\n          \};/);
 
