@@ -162,3 +162,12 @@ test("formatMistakesText renders plain text without markdown markers", () => {
   assert.match(text, /答案：B/);
   assert.doesNotMatch(text, /\*\*/);
 });
+
+test("formatMistakesPrintHtml fixes page colors independent of app theme", () => {
+  const html = exporter.formatMistakesPrintHtml([sampleQuestions[0]], {
+    subjectName: "毛概",
+    generatedAt: new Date("2026-06-16T01:30:00Z"),
+  });
+
+  assert.match(html, /\.page\s*\{[^}]*color: #111827;[^}]*background: #fff;/);
+});

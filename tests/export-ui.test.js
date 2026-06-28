@@ -69,11 +69,21 @@ test("pdf export lazy-loads the generator before falling back to the print page"
   assert.match(html, /const exportMistakes = async \(format\) => \{/);
   assert.match(html, /await loadHtml2pdfLibrary\(\)/);
   assert.match(html, /html2pdf\(\)\.set\(/);
-  assert.match(html, /const pdfSource = element\.querySelector\("\.page"\) \|\| element;/);
-  assert.match(html, /\.from\(pdfSource\)\.save\(`\$\{filenameBase\}\.pdf`\)/);
-  assert.doesNotMatch(html, /\.from\(element\)\.save\(`\$\{filenameBase\}\.pdf`\)/);
+  assert.match(html, /\.from\(pdfChunk\)\.toPdf\(\)/);
+  assert.match(html, /pdf\.save\(`\$\{filenameBase\}\.pdf`\)/);
+  assert.doesNotMatch(html, /\.from\((pdfSource|element)\)\.save\(`\$\{filenameBase\}\.pdf`\)/);
   assert.match(html, /const printHtml = exporter\.formatMistakesPrintHtml\(questions, meta\)/);
   assert.match(html, /openPrintExportWindow\(printHtml\)/);
+});
+
+test("pdf export renders large question sets in bounded chunks", () => {
+  assert.match(html, /const PDF_EXPORT_CHUNK_SIZE = \d+;/);
+  assert.match(html, /const createPdfExportChunks = \(element\) => \{/);
+  assert.match(html, /querySelectorAll\("\.question"\)/);
+  assert.match(html, /questionIndex % PDF_EXPORT_CHUNK_SIZE === 0/);
+  assert.match(html, /if \(pdf && chunkIndex > 0\) pdf\.addPage\(\);/);
+  assert.match(html, /set\(\{ \.\.\.pdfOptions, pdf \}\)/);
+  assert.doesNotMatch(html, /const pdfSource = element\.querySelector\("\.page"\) \|\| element;/);
 });
 
 test("export modal lets users choose multiple export scopes and mistake threshold", () => {
