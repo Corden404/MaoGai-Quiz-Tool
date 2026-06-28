@@ -59,7 +59,9 @@ test("pdf export lazy-loads the generator before falling back to the print page"
   assert.match(html, /const exportMistakes = async \(format\) => \{/);
   assert.match(html, /await loadHtml2pdfLibrary\(\)/);
   assert.match(html, /html2pdf\(\)\.set\(/);
-  assert.match(html, /\.save\(`\$\{filenameBase\}\.pdf`\)/);
+  assert.match(html, /const pdfSource = element\.querySelector\("\.page"\) \|\| element;/);
+  assert.match(html, /\.from\(pdfSource\)\.save\(`\$\{filenameBase\}\.pdf`\)/);
+  assert.doesNotMatch(html, /\.from\(element\)\.save\(`\$\{filenameBase\}\.pdf`\)/);
   assert.match(html, /const printHtml = exporter\.formatMistakesPrintHtml\(questions, meta\)/);
   assert.match(html, /openPrintExportWindow\(printHtml\)/);
 });

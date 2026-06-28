@@ -2854,6 +2854,7 @@
             document.body.appendChild(element);
 
             try {
+              const pdfSource = element.querySelector(".page") || element;
               await new Promise((resolve) => requestAnimationFrame(resolve));
               await window.html2pdf().set({
                 margin: [10, 10, 10, 10],
@@ -2865,7 +2866,7 @@
                 },
                 jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
                 pagebreak: { mode: ["css", "legacy"] },
-              }).from(element).save(`${filenameBase}.pdf`);
+              }).from(pdfSource).save(`${filenameBase}.pdf`);
               return true;
             } finally {
               element.remove();
