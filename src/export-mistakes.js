@@ -403,7 +403,7 @@
       line-height: 1.65;
       background: #fff;
     }
-    .page { max-width: 820px; margin: 0 auto; padding: 28px 24px; }
+    .page { max-width: 820px; margin: 0 auto; padding: 28px 24px; color: #111827; background: #fff; }
     h1 { margin: 0 0 12px; font-size: 28px; line-height: 1.25; }
     .summary { color: #475569; font-size: 13px; margin-bottom: 28px; }
     .summary span { display: inline-block; margin-right: 16px; }
