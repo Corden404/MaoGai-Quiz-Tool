@@ -56,6 +56,11 @@ test("export shows a clear toast when no questions are selected", () => {
   assert.match(html, /showToast\("没有选择题目，无法导出。", "info"\)/);
 });
 
+test("toast appears above modal overlays", () => {
+  assert.match(html, /toastInfo\.show[\s\S]{0,240}style="z-index: 250;"/);
+  assert.match(html, /showExportModal[\s\S]{0,180}z-\[200\]/);
+});
+
 test("pdf export lazy-loads the generator before falling back to the print page", () => {
   assert.doesNotMatch(html, /<script[^>]+html2pdf\.bundle\.min\.js[^>]*><\/script>/);
   assert.match(html, /const loadHtml2pdfLibrary = \(\) => \{/);
