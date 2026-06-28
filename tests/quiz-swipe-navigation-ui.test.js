@@ -7,10 +7,73 @@ const html = fs.readFileSync("index.html", "utf8");
 test("quiz page loads and binds swipe navigation to the question card", () => {
   assert.match(html, /<script src="\.\/src\/swipe-navigation\.js" defer><\/script>/);
   assert.match(html, /@touchstart\.passive="handleQuestionTouchStart"/);
+  assert.match(html, /@touchmove="handleQuestionTouchMove"/);
   assert.match(html, /@touchend\.passive="handleQuestionTouchEnd"/);
   assert.match(html, /SwipeNavigation\.resolveSwipeAction/);
-  assert.match(html, /if \(action === "previous"\) prevQuestion\(\);/);
-  assert.match(html, /if \(action === "next"\) nextQuestion\(\);/);
+  assert.match(html, /SwipeNavigation\.resolveSwipeDragOffset/);
+  assert.match(html, /:style="questionCardStyle"/);
+  assert.match(html, /animateQuestionCardTransition\(action\)/);
+});
+
+test("swipe card contains only the question body and answer controls", () => {
+  const swipeCard = html.match(/<div[^>]*class="quiz-card-viewport"[\s\S]*?<\/div>\s*<\/div>\s*<!-- 提交后的结果反馈 -->/);
+
+  assert.ok(swipeCard, "swipe card viewport should wrap the question body section");
+  assert.match(swipeCard[0], /<!-- 题目内容 -->/);
+  assert.match(swipeCard[0], /<!-- 交互区域 -->/);
+  assert.match(swipeCard[0], /currentQuestion\.question_content/);
+  assert.match(swipeCard[0], /@click="selectOption\(opt\)"/);
+  assert.doesNotMatch(swipeCard[0], /题号与合并标签行/);
+  assert.doesNotMatch(swipeCard[0], /toggleTag\('tag_star'\)/);
+  assert.doesNotMatch(swipeCard[0], /笔记与解题广场/);
+});
+
+test("swipe card renders the adjacent question while dragging", () => {
+  const swipeCard = html.match(/<div[^>]*class="quiz-card-viewport"[\s\S]*?<\/div>\s*<\/div>\s*<!-- 提交后的结果反馈 -->/);
+
+  assert.ok(swipeCard, "swipe card viewport should exist");
+  assert.match(swipeCard[0], /:style="questionCardViewportStyle"/);
+  assert.match(swipeCard[0], /v-if="adjacentQuestionPreview"/);
+  assert.match(swipeCard[0], /ref="adjacentQuestionCard"/);
+  assert.match(swipeCard[0], /class="quiz-question-card quiz-question-card-preview/);
+  assert.match(swipeCard[0], /:style="adjacentQuestionCardStyle"/);
+  assert.match(swipeCard[0], /adjacentQuestionPreview\.question_content/);
+  assert.match(html, /const questionCardViewportStyle = computed\(\(\) =>/);
+  assert.match(html, /const adjacentQuestionPreview = computed\(\(\) =>/);
+  assert.match(html, /const adjacentQuestionCardStyle = computed\(\(\) =>/);
+});
+
+test("swipe viewport expands to fit a taller adjacent preview", () => {
+  assert.match(html, /const questionCardViewportMinHeight = ref\(""\);/);
+  assert.match(html, /const updateQuestionCardViewportHeight = \(\) => \{/);
+  assert.match(html, /adjacentQuestionCard\.value\?\.offsetHeight/);
+  assert.match(html, /Math\.max\(currentHeight, adjacentHeight\)/);
+  assert.match(html, /nextTick\(updateQuestionCardViewportHeight\);/);
+  assert.match(html, /questionCardViewportMinHeight\.value = "";/);
+});
+
+test("completed swipe settles on the adjacent card without a second enter animation", () => {
+  const transitionHandler = html.match(/const animateQuestionCardTransition = \(action\) => \{[\s\S]*?\n          \};/);
+
+  assert.ok(transitionHandler, "swipe transition handler should exist");
+  assert.doesNotMatch(transitionHandler[0], /enterOffset/);
+  assert.match(transitionHandler[0], /if \(action === "previous"\) prevQuestion\(\);/);
+  assert.match(transitionHandler[0], /if \(action === "next"\) nextQuestion\(\);/);
+  assert.match(transitionHandler[0], /resetQuestionCardMotion\(\);/);
+});
+
+test("swipe dragging does not block native vertical page scrolling", () => {
+  const touchMoveHandler = html.match(/const handleQuestionTouchMove = \(event\) => \{[\s\S]*?\n          \};/);
+
+  assert.ok(touchMoveHandler, "touch move handler should exist");
+  assert.doesNotMatch(touchMoveHandler[0], /preventDefault\(/);
+  assert.match(html, /\.quiz-card-viewport\s*\{[\s\S]*touch-action: pan-y;/);
+});
+
+test("quiz content leaves enough mobile space above the fixed bottom actions", () => {
+  assert.match(html, /v-if="status === 'quiz'" class="[^"]*\bquiz-page-shell\b/);
+  assert.match(html, /\.quiz-page-shell\s*\{[\s\S]*padding-bottom: 13rem;/);
+  assert.match(html, /@media \(min-width: 640px\) \{[\s\S]*\.quiz-page-shell\s*\{[\s\S]*padding-bottom: 7rem;/);
 });
 
 test("swipe navigation ignores text and note editing areas", () => {

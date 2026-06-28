@@ -37,6 +37,40 @@
     return deltaX < 0 ? "next" : "previous";
   }
 
+  function resolveSwipeDragOffset({
+    startX,
+    startY,
+    currentX,
+    currentY,
+    isBlocked = false,
+    threshold = 8,
+    dominanceRatio = 1.15,
+    maxOffset = 120,
+  } = {}) {
+    if (isBlocked) return null;
+    if (
+      !Number.isFinite(startX) ||
+      !Number.isFinite(startY) ||
+      !Number.isFinite(currentX) ||
+      !Number.isFinite(currentY)
+    ) {
+      return null;
+    }
+
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (absX < threshold) return null;
+    if (absX < absY * dominanceRatio) return null;
+
+    const safeMaxOffset = Math.max(0, Number(maxOffset) || 0);
+    const offsetX = Math.max(-safeMaxOffset, Math.min(safeMaxOffset, deltaX));
+
+    return { isDragging: true, offsetX };
+  }
+
   function isSwipeIgnoredTarget(target) {
     if (!target) return false;
     const tagName = String(target.tagName || "").toUpperCase();
@@ -48,6 +82,7 @@
   }
 
   return {
+    resolveSwipeDragOffset,
     resolveSwipeAction,
     isSwipeIgnoredTarget,
   };

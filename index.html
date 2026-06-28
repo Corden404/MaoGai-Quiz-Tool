@@ -218,6 +218,29 @@
       transition: all 0.3s ease;
     }
 
+    .quiz-page-shell {
+      padding-bottom: 13rem;
+    }
+
+    .quiz-card-viewport {
+      position: relative;
+      overflow: hidden;
+      touch-action: pan-y;
+    }
+
+    .quiz-question-card {
+      position: relative;
+      z-index: 2;
+      will-change: transform;
+    }
+
+    .quiz-question-card-preview {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
     .mobile-quiz-nav {
       display: flex;
     }
@@ -269,6 +292,10 @@
     }
 
     @media (min-width: 640px) {
+      .quiz-page-shell {
+        padding-bottom: 7rem;
+      }
+
       .mobile-quiz-nav {
         display: none;
       }
@@ -1232,7 +1259,7 @@
     </div>
 
     <!-- 2. 刷题页面 (Quiz Page) -->
-    <div v-cloak v-if="status === 'quiz'" class="relative pb-28 max-w-3xl mx-auto">
+    <div v-cloak v-if="status === 'quiz'" class="relative quiz-page-shell max-w-3xl mx-auto">
       <!-- 顶部栏：进度与退出 -->
       <div class="flex justify-between items-center mb-4">
         <button @click="goToSetup"
@@ -1295,9 +1322,7 @@
       </div>
 
       <!-- 题目卡片 -->
-      <div @touchstart.passive="handleQuestionTouchStart" @touchend.passive="handleQuestionTouchEnd"
-        class="bg-white dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/40 p-5 sm:p-6 rounded-2xl shadow-sm min-h-[400px] flex flex-col transition-colors duration-300">
-
+      <div class="min-h-[400px] flex flex-col">
         <!-- 题号与合并标签行 -->
         <div class="mb-5 flex flex-col gap-3 border-b border-slate-100 dark:border-slate-700/50 pb-4">
           <!-- 大题号 -->
@@ -1345,6 +1370,55 @@
             </div>
           </div>
         </div>
+
+        <div ref="questionCardViewport" :style="questionCardViewportStyle" class="quiz-card-viewport" @touchstart.passive="handleQuestionTouchStart"
+          @touchmove="handleQuestionTouchMove" @touchend.passive="handleQuestionTouchEnd"
+          @touchcancel.passive="handleQuestionTouchCancel">
+          <div v-if="adjacentQuestionPreview" ref="adjacentQuestionCard" :style="adjacentQuestionCardStyle"
+            class="quiz-question-card quiz-question-card-preview bg-white dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/40 p-5 sm:p-6 rounded-2xl shadow-sm min-h-[320px] flex flex-col transition-colors duration-300"
+            aria-hidden="true">
+            <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-slate-100">
+              {{ adjacentQuestionPreview.question_content }}
+            </div>
+
+            <div class="flex-1">
+              <div v-if="isPreviewObjective(adjacentQuestionPreview)" class="space-y-3">
+                <div v-if="isPreviewChoice(adjacentQuestionPreview)" class="flex flex-col gap-3">
+                  <div v-for="opt in ['A','B','C','D','E','F']" :key="opt"
+                    v-show="previewOptionVisible(adjacentQuestionPreview, opt)"
+                    class="flex items-start text-left p-3 sm:p-4 border-2 rounded-xl transition-all duration-200 text-base sm:text-lg relative overflow-hidden group w-full border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200">
+                    <div
+                      class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 mr-3 mt-0.5">
+                      {{ opt }}
+                    </div>
+                    <div class="flex-1 leading-snug break-words pr-8 pt-1 font-medium font-sans">
+                      <template v-if="adjacentQuestionPreview.options && adjacentQuestionPreview.options[opt]">
+                        {{ adjacentQuestionPreview.options[opt] }}
+                      </template>
+                      <template v-else>
+                        <div class="w-full text-center">选项 {{ opt }}</div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="isPreviewJudgment(adjacentQuestionPreview)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div v-for="opt in ['正确', '错误']" :key="opt"
+                    class="py-3 sm:py-4 border-2 rounded-xl font-bold transition-all duration-200 text-lg sm:text-xl relative flex items-center overflow-hidden group border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200">
+                    <div class="w-full text-center">{{ opt }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else-if="!isMemorizeMode"
+                class="w-full p-4 border dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 dark:text-white min-h-[120px] text-slate-400 dark:text-slate-500">
+                在此输入你的答案（非必填，主要用于自测记忆）...
+              </div>
+            </div>
+          </div>
+
+          <div ref="questionCard" :key="currentQuestion.id || currentIndex" :style="questionCardStyle"
+            class="quiz-question-card bg-white dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/40 p-5 sm:p-6 rounded-2xl shadow-sm min-h-[320px] flex flex-col transition-colors duration-300">
 
         <!-- 题目内容 -->
         <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-slate-100">
@@ -1404,6 +1478,8 @@
           <div v-else-if="!isMemorizeMode">
             <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..." @input="autoResize" data-swipe-ignore
               class="w-full p-4 border dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none outline-none resize-none overflow-hidden min-h-[120px] transition-colors leading-relaxed"></textarea>
+          </div>
+        </div>
           </div>
         </div>
 
@@ -2314,7 +2390,15 @@
           const showErrorCount = ref(false);
           const showAnswerSheet = ref(false);
           const textarea = ref(null);
+          const questionCardViewport = ref(null);
+          const questionCard = ref(null);
+          const adjacentQuestionCard = ref(null);
+          const questionCardOffsetX = ref(0);
+          const questionCardTransitionMs = ref(0);
+          const questionCardViewportMinHeight = ref("");
+          const isQuestionCardAnimating = ref(false);
           let questionTouchStart = null;
+          let questionCardAnimationTimer = null;
 
           // 笔记相关
           const showNote = ref(false);
@@ -2464,6 +2548,7 @@
             window.addEventListener("popstate", handleQuizHistoryPop);
           });
           onUnmounted(() => window.removeEventListener("popstate", handleQuizHistoryPop));
+          onUnmounted(() => clearQuestionCardAnimationTimer());
 
           // --- 3. 计算属性 ---
           const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
@@ -2506,6 +2591,50 @@
           const progressPercent = computed(() => {
             if (queue.value.length === 0) return 0;
             return ((currentIndex.value + 1) / queue.value.length) * 100;
+          });
+
+          const questionCardViewportStyle = computed(() => (
+            questionCardViewportMinHeight.value
+              ? { minHeight: questionCardViewportMinHeight.value }
+              : {}
+          ));
+
+          const questionCardStyle = computed(() => {
+            const transition = questionCardTransitionMs.value > 0
+              ? `transform ${questionCardTransitionMs.value}ms cubic-bezier(0.16, 1, 0.3, 1)`
+              : "none";
+
+            return {
+              transform: `translate3d(${questionCardOffsetX.value}px, 0, 0)`,
+              transition,
+            };
+          });
+
+          const adjacentPreviewIndex = computed(() => {
+            if (questionCardOffsetX.value < 0 && currentIndex.value < queue.value.length - 1) {
+              return currentIndex.value + 1;
+            }
+            if (questionCardOffsetX.value > 0 && currentIndex.value > 0) {
+              return currentIndex.value - 1;
+            }
+            return -1;
+          });
+
+          const adjacentQuestionPreview = computed(() =>
+            adjacentPreviewIndex.value >= 0 ? queue.value[adjacentPreviewIndex.value] : null,
+          );
+
+          const adjacentQuestionCardStyle = computed(() => {
+            const slideDistance = getQuestionCardSlideDistance();
+            const direction = adjacentPreviewIndex.value > currentIndex.value ? 1 : -1;
+            const transition = questionCardTransitionMs.value > 0
+              ? `transform ${questionCardTransitionMs.value}ms cubic-bezier(0.16, 1, 0.3, 1)`
+              : "none";
+
+            return {
+              transform: `translate3d(${questionCardOffsetX.value + direction * slideDistance}px, 0, 0)`,
+              transition,
+            };
           });
 
           const answerSheetSummary = computed(() =>
@@ -2763,6 +2892,23 @@
             return "bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700";
           };
 
+          const isPreviewChoice = (question) =>
+            Boolean(question?.type && question.type.includes("选择"));
+
+          const isPreviewJudgment = (question) =>
+            Boolean(question?.type && (question.type.includes("辨析") || question.type.includes("判断")));
+
+          const isPreviewObjective = (question) =>
+            isPreviewChoice(question) || isPreviewJudgment(question);
+
+          const previewOptionVisible = (question, opt) => {
+            if (!isPreviewChoice(question)) return false;
+            if (question.options && question.options[opt]) return true;
+            if (opt !== "E" && opt !== "F") return true;
+            const answer = normalizeText(question.answer);
+            return answer.includes(opt) || answer.includes(opt.toLowerCase());
+          };
+
           const goToQuestion = (index) => {
             if (index < 0 || index >= queue.value.length) return;
             storeCurrentAttempt();
@@ -2778,16 +2924,118 @@
             isKeyboardBlockingOverlayOpen() ||
             SwipeNavigation.isSwipeIgnoredTarget(event.target);
 
+          const clearQuestionCardAnimationTimer = () => {
+            if (questionCardAnimationTimer) {
+              window.clearTimeout(questionCardAnimationTimer);
+              questionCardAnimationTimer = null;
+            }
+          };
+
+          const resetQuestionCardMotion = () => {
+            clearQuestionCardAnimationTimer();
+            questionCardOffsetX.value = 0;
+            questionCardTransitionMs.value = 0;
+            questionCardViewportMinHeight.value = "";
+            isQuestionCardAnimating.value = false;
+          };
+
+          const updateQuestionCardViewportHeight = () => {
+            if (!adjacentQuestionPreview.value) {
+              questionCardViewportMinHeight.value = "";
+              return;
+            }
+
+            const currentHeight = questionCard.value?.offsetHeight || 0;
+            const adjacentHeight = adjacentQuestionCard.value?.offsetHeight || 0;
+            const maxHeight = Math.max(currentHeight, adjacentHeight);
+
+            questionCardViewportMinHeight.value = maxHeight > 0 ? `${maxHeight}px` : "";
+          };
+
+          const snapQuestionCardBack = () => {
+            questionCardTransitionMs.value = 180;
+            questionCardOffsetX.value = 0;
+            clearQuestionCardAnimationTimer();
+            questionCardAnimationTimer = window.setTimeout(() => {
+              questionCardTransitionMs.value = 0;
+              questionCardViewportMinHeight.value = "";
+              questionCardAnimationTimer = null;
+            }, 190);
+          };
+
+          const getQuestionCardSlideDistance = () => {
+            const cardWidth = questionCard.value?.offsetWidth || window.innerWidth || 320;
+            return cardWidth + 48;
+          };
+
+          const getQuestionCardDragLimit = () =>
+            Math.max(80, Math.min(getQuestionCardSlideDistance() * 0.85, 420));
+
+          const canNavigateBySwipe = (action) => {
+            if (action === "previous") return currentIndex.value > 0;
+            if (action === "next") return queue.value.length > 0;
+            return false;
+          };
+
+          const animateQuestionCardTransition = (action) => {
+            if (isQuestionCardAnimating.value || !canNavigateBySwipe(action)) {
+              snapQuestionCardBack();
+              return;
+            }
+
+            const slideDistance = getQuestionCardSlideDistance();
+            const exitOffset = action === "next" ? -slideDistance : slideDistance;
+
+            clearQuestionCardAnimationTimer();
+            isQuestionCardAnimating.value = true;
+            questionCardTransitionMs.value = 180;
+            questionCardOffsetX.value = exitOffset;
+
+            questionCardAnimationTimer = window.setTimeout(() => {
+              if (action === "previous") prevQuestion();
+              if (action === "next") nextQuestion();
+
+              if (status.value !== "quiz") {
+                resetQuestionCardMotion();
+                return;
+              }
+
+              resetQuestionCardMotion();
+            }, 190);
+          };
+
           const handleQuestionTouchStart = (event) => {
-            if (isSwipeNavigationBlocked(event)) {
+            if (isQuestionCardAnimating.value || isSwipeNavigationBlocked(event)) {
               questionTouchStart = null;
               return;
             }
 
             const touch = getTouchPoint(event);
             questionTouchStart = touch
-              ? { x: touch.clientX, y: touch.clientY }
+              ? { x: touch.clientX, y: touch.clientY, isDragging: false }
               : null;
+            questionCardTransitionMs.value = 0;
+          };
+
+          const handleQuestionTouchMove = (event) => {
+            if (!questionTouchStart || isQuestionCardAnimating.value) return;
+            const touch = getTouchPoint(event);
+            if (!touch) return;
+
+            const drag = SwipeNavigation.resolveSwipeDragOffset({
+              startX: questionTouchStart.x,
+              startY: questionTouchStart.y,
+              currentX: touch.clientX,
+              currentY: touch.clientY,
+              isBlocked: isSwipeNavigationBlocked(event),
+              maxOffset: getQuestionCardDragLimit(),
+            });
+
+            if (!drag) return;
+            questionTouchStart.isDragging = true;
+            questionCardTransitionMs.value = 0;
+            questionCardOffsetX.value = drag.offsetX;
+            nextTick(updateQuestionCardViewportHeight);
           };
 
           const handleQuestionTouchEnd = (event) => {
@@ -2795,6 +3043,7 @@
             const touch = getTouchPoint(event);
             if (!touch) {
               questionTouchStart = null;
+              snapQuestionCardBack();
               return;
             }
 
@@ -2807,8 +3056,16 @@
             });
             questionTouchStart = null;
 
-            if (action === "previous") prevQuestion();
-            if (action === "next") nextQuestion();
+            if (action) {
+              animateQuestionCardTransition(action);
+            } else {
+              snapQuestionCardBack();
+            }
+          };
+
+          const handleQuestionTouchCancel = () => {
+            questionTouchStart = null;
+            snapQuestionCardBack();
           };
 
           const autoResize = (e) => {
@@ -3426,8 +3683,21 @@
             answerSheetSummary,
             answerSheetButtonClass,
             goToQuestion,
+            questionCardViewport,
+            questionCardViewportStyle,
+            questionCard,
+            adjacentQuestionCard,
+            questionCardStyle,
+            adjacentQuestionPreview,
+            adjacentQuestionCardStyle,
+            isPreviewChoice,
+            isPreviewJudgment,
+            isPreviewObjective,
+            previewOptionVisible,
             handleQuestionTouchStart,
+            handleQuestionTouchMove,
             handleQuestionTouchEnd,
+            handleQuestionTouchCancel,
             resultClass,
             resultTitle,
             autoResize,

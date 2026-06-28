@@ -37,6 +37,7 @@ export_questions_only_md.py
 
 # AI
 GEMINI.md
+docs/ui-audit-current/notes.md
 # Local config (contains keys)
 
 ROADMAP.md  
