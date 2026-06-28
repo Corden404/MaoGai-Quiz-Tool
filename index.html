@@ -50,6 +50,7 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" defer></script>
   <!-- 引入 driver.js 核心逻辑 -->
   <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
   <!-- 引入配置文件与 Supabase SDK -->
   <script src="./config.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2806,6 +2807,63 @@
             downloadBlob(blob, filename);
           };
 
+          const createPdfExportElement = (html) => {
+            const parsed = new DOMParser().parseFromString(html, "text/html");
+            const container = document.createElement("div");
+            container.style.position = "fixed";
+            container.style.left = "-10000px";
+            container.style.top = "0";
+            container.style.width = "820px";
+            container.style.background = "#ffffff";
+            container.style.zIndex = "-1";
+
+            const style = parsed.querySelector("style");
+            if (style) container.appendChild(style.cloneNode(true));
+            Array.from(parsed.body.children).forEach((child) => {
+              container.appendChild(child.cloneNode(true));
+            });
+
+            return container;
+          };
+
+          const downloadPdfFile = async (html, filenameBase) => {
+            if (typeof window.html2pdf !== "function") return false;
+
+            const element = createPdfExportElement(html);
+            document.body.appendChild(element);
+
+            try {
+              await new Promise((resolve) => requestAnimationFrame(resolve));
+              await window.html2pdf().set({
+                margin: [10, 10, 10, 10],
+                filename: `${filenameBase}.pdf`,
+                image: { type: "jpeg", quality: 0.96 },
+                html2canvas: {
+                  scale: Math.min(2, window.devicePixelRatio || 1.5),
+                  useCORS: true,
+                },
+                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                pagebreak: { mode: ["css", "legacy"] },
+              }).from(element).save(`${filenameBase}.pdf`);
+              return true;
+            } finally {
+              element.remove();
+            }
+          };
+
+          const openPrintExportWindow = (html) => {
+            const printWindow = window.open("", "_blank");
+            if (!printWindow) return false;
+
+            printWindow.opener = null;
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 300);
+            return true;
+          };
+
           const exportScopeLabels = {
             mistake: "错题",
             star: "星标",
@@ -2904,7 +2962,7 @@
             };
           };
 
-          const exportMistakes = (format) => {
+          const exportMistakes = async (format) => {
             const payload = createMistakeExportPayload();
             if (!payload) return false;
 
@@ -2925,19 +2983,22 @@
             }
 
             if (format === "pdf") {
-              const printWindow = window.open("", "_blank");
-              if (!printWindow) {
+              const printHtml = exporter.formatMistakesPrintHtml(questions, meta);
+              try {
+                if (await downloadPdfFile(printHtml, filenameBase)) {
+                  showToast(`PDF ${collectionName}已导出。`, "success");
+                  return true;
+                }
+              } catch (err) {
+                console.error("PDF export failed:", err);
+              }
+
+              if (!openPrintExportWindow(printHtml)) {
                 showToast("浏览器阻止了打印窗口，请允许弹窗后重试。", "error");
                 return false;
               }
 
-              printWindow.opener = null;
-              printWindow.document.open();
-              printWindow.document.write(exporter.formatMistakesPrintHtml(questions, meta));
-              printWindow.document.close();
-              printWindow.focus();
-              setTimeout(() => printWindow.print(), 300);
-              showToast(`已打开 PDF ${collectionName}打印页面。`, "success");
+              showToast(`PDF ${collectionName}生成失败，已改为打印页面。`, "warning");
               return true;
             }
 
@@ -2945,8 +3006,8 @@
             return false;
           };
 
-          const handleExportFormat = (format) => {
-            if (exportMistakes(format)) {
+          const handleExportFormat = async (format) => {
+            if (await exportMistakes(format)) {
               showExportModal.value = false;
             }
           };

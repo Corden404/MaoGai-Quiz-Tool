@@ -44,11 +44,20 @@ test("export formats are selected from the modal", () => {
 });
 
 test("export modal only closes after a successful export", () => {
-  assert.match(html, /const handleExportFormat = \(format\) => \{/);
-  assert.match(html, /if \(exportMistakes\(format\)\) \{/);
+  assert.match(html, /const handleExportFormat = async \(format\) => \{/);
+  assert.match(html, /if \(await exportMistakes\(format\)\) \{/);
   assert.match(html, /showExportModal\.value = false;/);
   assert.match(html, /return false;/);
   assert.match(html, /return true;/);
+});
+
+test("pdf export downloads a generated pdf before falling back to the print page", () => {
+  assert.match(html, /html2pdf\.bundle\.min\.js/);
+  assert.match(html, /const exportMistakes = async \(format\) => \{/);
+  assert.match(html, /html2pdf\(\)\.set\(/);
+  assert.match(html, /\.save\(`\$\{filenameBase\}\.pdf`\)/);
+  assert.match(html, /const printHtml = exporter\.formatMistakesPrintHtml\(questions, meta\)/);
+  assert.match(html, /openPrintExportWindow\(printHtml\)/);
 });
 
 test("export modal lets users choose multiple export scopes and mistake threshold", () => {
