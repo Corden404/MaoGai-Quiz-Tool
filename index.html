@@ -2953,7 +2953,7 @@
             const questions = selectedExportQuestions.value;
 
             if (questions.length === 0) {
-              showToast(`没有符合当前筛选条件的${selectedExportScopeLabels.value.join("、")}。`, "info");
+              showToast("没有选择题目，无法导出。", "info");
               return null;
             }
 

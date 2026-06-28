@@ -51,6 +51,11 @@ test("export modal only closes after a successful export", () => {
   assert.match(html, /return true;/);
 });
 
+test("export shows a clear toast when no questions are selected", () => {
+  assert.match(html, /if \(questions\.length === 0\) \{/);
+  assert.match(html, /showToast\("没有选择题目，无法导出。", "info"\)/);
+});
+
 test("pdf export lazy-loads the generator before falling back to the print page", () => {
   assert.doesNotMatch(html, /<script[^>]+html2pdf\.bundle\.min\.js[^>]*><\/script>/);
   assert.match(html, /const loadHtml2pdfLibrary = \(\) => \{/);
