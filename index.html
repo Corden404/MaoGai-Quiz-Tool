@@ -2808,6 +2808,7 @@
           };
 
           const HTML2PDF_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
+          const PDF_EXPORT_CHUNK_SIZE = 18;
           let html2pdfLoadPromise = null;
 
           const loadHtml2pdfLibrary = () => {
@@ -2848,6 +2849,61 @@
             return container;
           };
 
+          const createPdfExportChunks = (element) => {
+            const originalPage = element.querySelector(".page");
+            if (!originalPage) return [element];
+
+            const questions = Array.from(originalPage.querySelectorAll(".question"));
+            if (questions.length <= PDF_EXPORT_CHUNK_SIZE) return [originalPage];
+
+            const chunks = [];
+            let currentPage = null;
+            let currentSection = null;
+            let currentSectionTitle = "";
+
+            const appendHeader = (page) => {
+              Array.from(originalPage.children).forEach((child) => {
+                if (!child.classList?.contains("chapter")) page.appendChild(child.cloneNode(true));
+              });
+            };
+
+            const startChunk = (includeHeader = false) => {
+              currentPage = document.createElement("main");
+              currentPage.className = originalPage.className;
+              currentPage.classList.add("pdf-export-chunk");
+              if (includeHeader) appendHeader(currentPage);
+              chunks.push(currentPage);
+              currentSection = null;
+              currentSectionTitle = "";
+            };
+
+            const ensureSection = (titleNode) => {
+              const titleText = titleNode ? titleNode.textContent || "" : "";
+              if (currentSection && currentSectionTitle === titleText) return;
+
+              currentSection = document.createElement("section");
+              currentSection.className = "chapter";
+              if (titleNode) currentSection.appendChild(titleNode.cloneNode(true));
+              currentPage.appendChild(currentSection);
+              currentSectionTitle = titleText;
+            };
+
+            startChunk(true);
+            let questionIndex = 0;
+            Array.from(originalPage.querySelectorAll(".chapter")).forEach((chapter) => {
+              const titleNode = chapter.querySelector("h2");
+              Array.from(chapter.querySelectorAll(".question")).forEach((question) => {
+                if (questionIndex > 0 && questionIndex % PDF_EXPORT_CHUNK_SIZE === 0) startChunk();
+                ensureSection(titleNode);
+                currentSection.appendChild(question.cloneNode(true));
+                questionIndex += 1;
+              });
+            });
+
+            originalPage.replaceWith(...chunks);
+            return chunks;
+          };
+
           const downloadPdfFile = async (html, filenameBase) => {
             if (!(await loadHtml2pdfLibrary())) return false;
 
@@ -2855,9 +2911,9 @@
             document.body.appendChild(element);
 
             try {
-              const pdfSource = element.querySelector(".page") || element;
-              await new Promise((resolve) => requestAnimationFrame(resolve));
-              await window.html2pdf().set({
+              const pdfChunks = createPdfExportChunks(element);
+              if (!pdfChunks.length) return false;
+              const pdfOptions = {
                 margin: [10, 10, 10, 10],
                 filename: `${filenameBase}.pdf`,
                 image: { type: "jpeg", quality: 0.96 },
@@ -2867,7 +2923,17 @@
                 },
                 jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
                 pagebreak: { mode: ["css", "legacy"] },
-              }).from(pdfSource).save(`${filenameBase}.pdf`);
+              };
+              let pdf = null;
+
+              await new Promise((resolve) => requestAnimationFrame(resolve));
+              for (const [chunkIndex, pdfChunk] of pdfChunks.entries()) {
+                if (pdf && chunkIndex > 0) pdf.addPage();
+                const worker = window.html2pdf().set({ ...pdfOptions, pdf }).from(pdfChunk).toPdf();
+                pdf = await worker.get("pdf");
+              }
+
+              pdf.save(`${filenameBase}.pdf`);
               return true;
             } finally {
               element.remove();
