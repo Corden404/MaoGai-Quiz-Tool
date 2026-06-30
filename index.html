@@ -55,6 +55,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="./questions.js" defer></script>
   <script src="./mayuan_questions.js" defer></script>
+  <script src="./src/answer-sheet.js" defer></script>
+  <script src="./src/swipe-navigation.js" defer></script>
   <script src="./src/export-mistakes.js" defer></script>
   <style>
     /* === Transitions === */
@@ -214,6 +216,114 @@
     .section-card {
       border-radius: 20px;
       transition: all 0.3s ease;
+    }
+
+    .quiz-page-shell {
+      padding-bottom: 13rem;
+    }
+
+    .quiz-card-viewport {
+      position: relative;
+      overflow: hidden;
+      touch-action: pan-y;
+    }
+
+    .quiz-question-card {
+      position: relative;
+      z-index: 2;
+      will-change: transform, opacity;
+    }
+
+    .quiz-question-card-preview {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .mobile-quiz-nav {
+      display: flex;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .quiz-question-card {
+        transition: none !important;
+      }
+
+      .quiz-question-card * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    .desktop-quiz-nav {
+      display: none;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .desktop-quiz-nav-button {
+      min-width: 7.25rem;
+      min-height: 2.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(100, 116, 139, 0.22);
+      background: rgba(226, 232, 240, 0.42);
+      color: #475569;
+      font-size: 0.95rem;
+      font-weight: 800;
+      transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .dark .desktop-quiz-nav-button {
+      border-color: rgba(148, 163, 184, 0.2);
+      background: rgba(51, 65, 85, 0.36);
+      color: #cbd5e1;
+    }
+
+    .desktop-quiz-nav-button:not(:disabled):hover {
+      transform: translateY(-1px);
+      border-color: rgba(20, 184, 166, 0.3);
+      background: rgba(226, 232, 240, 0.62);
+      color: #334155;
+    }
+
+    .dark .desktop-quiz-nav-button:not(:disabled):hover {
+      border-color: rgba(45, 212, 191, 0.24);
+      background: rgba(71, 85, 105, 0.5);
+      color: #e2e8f0;
+    }
+
+    .desktop-quiz-nav-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+    }
+
+    @media (min-width: 640px) {
+      .quiz-page-shell {
+        padding-bottom: 7rem;
+      }
+
+      .mobile-quiz-nav {
+        display: none;
+      }
+
+      .desktop-quiz-nav {
+        display: flex;
+      }
+
+      .quiz-bottom-actions {
+        position: static !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border-top-color: transparent !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
     }
 
     .export-modal-shell,
@@ -1163,12 +1273,12 @@
     </div>
 
     <!-- 2. 刷题页面 (Quiz Page) -->
-    <div v-cloak v-if="status === 'quiz'" class="relative pb-28 max-w-3xl mx-auto">
+    <div v-cloak v-if="status === 'quiz'" class="relative quiz-page-shell max-w-3xl mx-auto">
       <!-- 顶部栏：进度与退出 -->
       <div class="flex justify-between items-center mb-4">
-        <button @click="status='setup'"
-          class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-sm font-semibold flex items-center gap-1 transition">
-          ← 退出
+        <button @click="goToSetup"
+          class="border border-red-200 bg-red-50 hover:bg-red-200 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:hover:bg-red-900/50 dark:text-red-300 text-sm font-bold px-4 py-2 rounded-xl shadow-sm transition focus:outline-none focus:ring-2 focus:ring-red-400">
+          退出
         </button>
         <div class="flex-1 mx-4">
           <div class="h-2 bg-slate-200 dark:bg-slate-700/60 rounded-full overflow-hidden flex">
@@ -1186,12 +1296,47 @@
               v-if="stats.wrong > 0">✗ {{ stats.wrong }}</span>
           </div>
         </div>
+        <button @click="showAnswerSheet = true"
+          class="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold px-4 py-2 rounded-xl shadow-sm transition focus:outline-none focus:ring-2 focus:ring-brand-500">
+          答题卡
+        </button>
+      </div>
+
+      <div v-cloak v-if="showAnswerSheet"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4 fade-enter-active">
+        <div
+          class="bg-white dark:bg-surface-800 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg w-full max-h-[85vh] overflow-y-auto custom-scrollbar border border-slate-200/60 dark:border-slate-700/40">
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100">答题卡</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                已做 {{ answerSheetSummary.answered }} / {{ answerSheetSummary.total }}，未做 {{ answerSheetSummary.unanswered }}
+              </p>
+            </div>
+            <button @click="showAnswerSheet = false"
+              class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-2xl leading-none transition"
+              aria-label="关闭答题卡">×</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-brand-500"></span>当前</span>
+            <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span>已做</span>
+            <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600"></span>未做</span>
+          </div>
+
+          <div class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <button v-for="(question, index) in queue" :key="question.id || index"
+              @click="goToQuestion(index)"
+              :class="answerSheetButtonClass(question, index)"
+              class="h-10 rounded-xl border text-sm font-extrabold transition focus:outline-none focus:ring-2 focus:ring-brand-500">
+              {{ index + 1 }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- 题目卡片 -->
-      <div
-        class="bg-white dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/40 p-5 sm:p-6 rounded-2xl shadow-sm min-h-[400px] flex flex-col transition-colors duration-300">
-
+      <div class="min-h-[400px] flex flex-col">
         <!-- 题号与合并标签行 -->
         <div class="mb-5 flex flex-col gap-3 border-b border-slate-100 dark:border-slate-700/50 pb-4">
           <!-- 大题号 -->
@@ -1239,6 +1384,55 @@
             </div>
           </div>
         </div>
+
+        <div ref="questionCardViewport" :style="questionCardViewportStyle" class="quiz-card-viewport" @touchstart.passive="handleQuestionTouchStart"
+          @touchmove="handleQuestionTouchMove" @touchend.passive="handleQuestionTouchEnd"
+          @touchcancel.passive="handleQuestionTouchCancel">
+          <div v-if="adjacentQuestionPreview" ref="adjacentQuestionCard" :style="adjacentQuestionCardStyle"
+            class="quiz-question-card quiz-question-card-preview bg-white dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/40 p-5 sm:p-6 rounded-2xl shadow-sm min-h-[320px] flex flex-col transition-colors duration-300"
+            aria-hidden="true">
+            <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-slate-100">
+              {{ adjacentQuestionPreview.question_content }}
+            </div>
+
+            <div class="flex-1">
+              <div v-if="isPreviewObjective(adjacentQuestionPreview)" class="space-y-3">
+                <div v-if="isPreviewChoice(adjacentQuestionPreview)" class="flex flex-col gap-3">
+                  <div v-for="opt in ['A','B','C','D','E','F']" :key="opt"
+                    v-show="previewOptionVisible(adjacentQuestionPreview, opt)"
+                    class="flex items-start text-left p-3 sm:p-4 border-2 rounded-xl transition-all duration-200 text-base sm:text-lg relative overflow-hidden group w-full border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200">
+                    <div
+                      class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 mr-3 mt-0.5">
+                      {{ opt }}
+                    </div>
+                    <div class="flex-1 leading-snug break-words pr-8 pt-1 font-medium font-sans">
+                      <template v-if="adjacentQuestionPreview.options && adjacentQuestionPreview.options[opt]">
+                        {{ adjacentQuestionPreview.options[opt] }}
+                      </template>
+                      <template v-else>
+                        <div class="w-full text-center">选项 {{ opt }}</div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="isPreviewJudgment(adjacentQuestionPreview)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div v-for="opt in ['正确', '错误']" :key="opt"
+                    class="py-3 sm:py-4 border-2 rounded-xl font-bold transition-all duration-200 text-lg sm:text-xl relative flex items-center overflow-hidden group border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200">
+                    <div class="w-full text-center">{{ opt }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else-if="!isMemorizeMode"
+                class="w-full p-4 border dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 dark:text-white min-h-[120px] text-slate-400 dark:text-slate-500">
+                在此输入你的答案（非必填，主要用于自测记忆）...
+              </div>
+            </div>
+          </div>
+
+          <div ref="questionCard" :key="currentQuestion.id || currentIndex" :style="questionCardStyle"
+            class="quiz-question-card bg-white dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/40 p-5 sm:p-6 rounded-2xl shadow-sm min-h-[320px] flex flex-col transition-colors duration-300">
 
         <!-- 题目内容 -->
         <div class="text-lg sm:text-xl font-medium mb-6 whitespace-pre-wrap leading-relaxed dark:text-slate-100">
@@ -1296,8 +1490,10 @@
 
           <!-- B. 主观题输入区 (简答/论述) -->
           <div v-else-if="!isMemorizeMode">
-            <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..." @input="autoResize"
+            <textarea ref="textarea" v-model="userInputText" placeholder="在此输入你的答案（非必填，主要用于自测记忆）..." @input="autoResize" data-swipe-ignore
               class="w-full p-4 border dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700/50 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none outline-none resize-none overflow-hidden min-h-[120px] transition-colors leading-relaxed"></textarea>
+          </div>
+        </div>
           </div>
         </div>
 
@@ -1322,7 +1518,7 @@
             <span>📝 笔记与解题广场</span>
           </div>
 
-          <div v-if="showNote" class="mt-4 fade-enter-active">
+          <div v-if="showNote" data-swipe-ignore class="mt-4 fade-enter-active">
             <!-- 选项卡 -->
             <div class="flex border-b border-slate-200 dark:border-slate-700/50 mb-3">
               <button @click="noteTab = 'private'"
@@ -1430,41 +1626,45 @@
         </div>
       </div>
 
+      <div class="quiz-card-action-row desktop-quiz-nav quiz-nav-actions mt-3 sm:mt-4">
+        <button @click="prevQuestion" :disabled="currentIndex === 0" class="desktop-quiz-nav-button">
+          ← 上一题
+        </button>
+        <button @click="nextQuestion" class="desktop-quiz-nav-button">
+          {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }}
+        </button>
+      </div>
+
       <!-- 🚀 固定底部操作栏 (Fixed Bottom Indicator) -->
       <div
-        class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/40 p-3 sm:p-4 z-40 shadow-[0_-8px_16px_rgba(0,0,0,0.03)]">
-        <div class="max-w-3xl mx-auto">
-          <!-- 阶段1: 未提交 -->
+        class="quiz-bottom-actions fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-surface-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700/40 p-3 sm:p-4 z-40 shadow-[0_-8px_16px_rgba(0,0,0,0.03)]">
+        <div class="max-w-3xl mx-auto space-y-3">
           <div v-if="!hasSubmitted && !isMemorizeMode">
             <button @click="submitAnswer" class="btn-cta w-full text-white font-extrabold py-3.5 rounded-2xl text-lg">
               {{ isObjective ? '提交答案' : '查看参考答案' }}
             </button>
           </div>
 
-          <!-- 阶段2: 已提交或背题模式 -->
-          <div v-else class="fade-enter-active">
-            <!-- 主观题自评按钮 (背题模式下隐藏) -->
-            <div v-if="!isObjective && subjectiveStatus === 'pending' && !isMemorizeMode" class="flex flex-row gap-3">
-              <button @click="markSubjective(true)"
-                class="flex-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3.5 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/50 font-bold transition shadow-sm text-center">
-                掌握了 ✓
-              </button>
-              <button @click="markSubjective(false)"
-                class="flex-1 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 py-3.5 rounded-xl hover:bg-rose-200 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-700/50 font-bold transition shadow-sm text-center">
-                答错了 ✗
-              </button>
-            </div>
+          <div v-if="hasSubmitted && !isObjective && subjectiveStatus === 'pending' && !isMemorizeMode"
+            class="flex flex-row gap-3 fade-enter-active">
+            <button @click="markSubjective(true)"
+              class="flex-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3.5 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/50 font-bold transition shadow-sm text-center">
+              掌握了 ✓
+            </button>
+            <button @click="markSubjective(false)"
+              class="flex-1 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 py-3.5 rounded-xl hover:bg-rose-200 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-700/50 font-bold transition shadow-sm text-center">
+              答错了 ✗
+            </button>
+          </div>
 
-            <!-- 下一题按钮 -->
-            <div v-if="isObjective || subjectiveStatus !== 'pending' || isMemorizeMode" class="flex flex-row gap-3">
-              <button @click="prevQuestion" :disabled="currentIndex === 0"
-                class="flex-[1] bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
-                ← 上一题
-              </button>
-              <button @click="nextQuestion"
-                class="flex-[2] bg-slate-800 dark:bg-slate-600 hover:bg-slate-900 dark:hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-lg">
-                {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
-            </div>
+          <div class="mobile-quiz-nav quiz-nav-actions flex flex-row gap-3">
+            <button @click="prevQuestionWithAnimation" :disabled="currentIndex === 0"
+              class="flex-[1] bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
+              ← 上一题
+            </button>
+            <button @click="nextQuestionWithAnimation"
+              class="flex-[2] bg-slate-800 dark:bg-slate-600 hover:bg-slate-900 dark:hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-lg">
+              {{ currentIndex < queue.length - 1 ? '下一题 →' : '查看结果' }} </button>
           </div>
         </div>
       </div>
@@ -1481,7 +1681,7 @@
 
       <template v-if="!isMemorizeMode">
         <!-- 统计卡片 -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
             <div class="text-blue-500 dark:text-blue-400 text-sm font-bold uppercase">总题数</div>
             <div class="text-4xl font-bold text-blue-700 dark:text-blue-300 mt-2">{{ queue.length }}</div>
@@ -1493,6 +1693,10 @@
           <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
             <div class="text-red-500 dark:text-red-400 text-sm font-bold uppercase">错误</div>
             <div class="text-4xl font-bold text-red-700 dark:text-red-300 mt-2">{{ stats.wrong }}</div>
+          </div>
+          <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/50">
+            <div class="text-amber-700 dark:text-amber-400 text-sm font-bold uppercase">未作答</div>
+            <div class="text-4xl font-bold text-amber-700 dark:text-amber-400 mt-2">{{ answerSheetSummary.unanswered }}</div>
           </div>
         </div>
 
@@ -1520,7 +1724,7 @@
       </template>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <button @click="status='setup'"
+        <button @click="goToSetup"
           class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-xl font-bold transition btn-float">
           返回首页
         </button>
@@ -1531,7 +1735,7 @@
     </div>
   </div>
 
-  <script src="src/keyboard-shortcuts.js"></script>
+  <script src="src/keyboard-shortcuts.js?v=arrow-navigation"></script>
   <script src="src/question-tags.js"></script>
   <script src="src/user-data-security.js"></script>
   <script>
@@ -1590,6 +1794,21 @@
 
           // 统一管理的公告列表 (按时间倒序排列)
           const announcementsList = [
+            {
+              version: 6,
+              type: "update",
+              title: "📱 刷题页体验优化",
+              date: "2026-06-30",
+              content: `
+              <p class="text-slate-600 dark:text-slate-300 mb-3">本次更新优化了刷题页的移动端和桌面端使用体验：</p>
+              <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/50 mb-3">
+                <p>新增答题卡：可查看当前练习的已做/未做进度，并快速跳转到指定题目。</p>
+              </div>
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                <p>新增滑动切题：移动端可左右滑动切换上一题/下一题，纵向滚动和文字输入不受影响。</p>
+              </div>
+            `
+            },
             {
               version: 5,
               type: "update",
@@ -2198,7 +2417,21 @@
           const isCorrect = ref(false);
           const subjectiveStatus = ref("pending");
           const showErrorCount = ref(false);
+          const showAnswerSheet = ref(false);
           const textarea = ref(null);
+          const questionCardViewport = ref(null);
+          const questionCard = ref(null);
+          const adjacentQuestionCard = ref(null);
+          const questionCardOffsetX = ref(0);
+          const questionCardTransitionMs = ref(0);
+          const questionCardViewportMinHeight = ref("");
+          const isQuestionCardAnimating = ref(false);
+          const QUESTION_CARD_EXIT_MS = 220;
+          const QUESTION_CARD_SNAP_MS = 200;
+          const QUESTION_CARD_SETTLE_BUFFER_MS = 24;
+          const QUESTION_CARD_TRANSITION_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+          let questionTouchStart = null;
+          let questionCardAnimationTimer = null;
 
           // 笔记相关
           const showNote = ref(false);
@@ -2216,6 +2449,72 @@
 
           let syncTimeout = null;
           let syncTargetUserId = null;
+          const QUIZ_HISTORY_STATE_KEY = "maogaiQuizStatus";
+          let quizHistoryDepth = 0;
+
+          const canUseQuizHistory = () =>
+            typeof window !== "undefined" &&
+            window.history &&
+            typeof window.history.pushState === "function" &&
+            typeof window.history.replaceState === "function";
+
+          const getQuizHistoryUrl = (nextStatus) => {
+            const baseUrl = `${window.location.pathname}${window.location.search}`;
+            return nextStatus === "setup" ? baseUrl : `${baseUrl}#${nextStatus}`;
+          };
+
+          const getQuizHistoryStatus = (state) =>
+            state && state[QUIZ_HISTORY_STATE_KEY] ? state[QUIZ_HISTORY_STATE_KEY] : "setup";
+
+          const scrollQuizPageToTop = () => {
+            if (typeof window === "undefined" || typeof window.scrollTo !== "function") return;
+            nextTick(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+          };
+
+          const replaceQuizHistory = (nextStatus, depth = quizHistoryDepth) => {
+            if (!canUseQuizHistory()) return;
+            quizHistoryDepth = depth;
+            window.history.replaceState({
+              [QUIZ_HISTORY_STATE_KEY]: nextStatus,
+              depth,
+            }, "", getQuizHistoryUrl(nextStatus));
+          };
+
+          const pushQuizHistory = (nextStatus) => {
+            if (!canUseQuizHistory()) return;
+            if (getQuizHistoryStatus(window.history.state) === nextStatus) return;
+            const nextDepth = quizHistoryDepth + 1;
+            quizHistoryDepth = nextDepth;
+            window.history.pushState({
+              [QUIZ_HISTORY_STATE_KEY]: nextStatus,
+              depth: nextDepth,
+            }, "", getQuizHistoryUrl(nextStatus));
+          };
+
+          const applyQuizHistoryStatus = (nextStatus) => {
+            if ((nextStatus === "quiz" || nextStatus === "result") && queue.value.length === 0) {
+              status.value = "setup";
+              replaceQuizHistory("setup", 0);
+              return;
+            }
+            status.value = nextStatus === "quiz" || nextStatus === "result" ? nextStatus : "setup";
+          };
+
+          const handleQuizHistoryPop = (event) => {
+            quizHistoryDepth = Number(event.state?.depth || 0);
+            applyQuizHistoryStatus(getQuizHistoryStatus(event.state));
+          };
+
+          const goToSetup = () => {
+            status.value = "setup";
+            if (canUseQuizHistory() && quizHistoryDepth > 0) {
+              const depth = quizHistoryDepth;
+              quizHistoryDepth = 0;
+              window.history.go(-depth);
+              return;
+            }
+            replaceQuizHistory("setup", 0);
+          };
 
           const cancelPendingSync = () => {
             if (syncTimeout) clearTimeout(syncTimeout);
@@ -2282,6 +2581,13 @@
             window.addEventListener("beforeunload", flushSync);
           });
 
+          onMounted(() => {
+            replaceQuizHistory("setup", 0);
+            window.addEventListener("popstate", handleQuizHistoryPop);
+          });
+          onUnmounted(() => window.removeEventListener("popstate", handleQuizHistoryPop));
+          onUnmounted(() => clearQuestionCardAnimationTimer());
+
           // --- 3. 计算属性 ---
           const currentQuestion = computed(() => queue.value[currentIndex.value] || {});
 
@@ -2324,6 +2630,64 @@
             if (queue.value.length === 0) return 0;
             return ((currentIndex.value + 1) / queue.value.length) * 100;
           });
+
+          const questionCardViewportStyle = computed(() => (
+            questionCardViewportMinHeight.value
+              ? { minHeight: questionCardViewportMinHeight.value }
+              : {}
+          ));
+
+          const questionCardTransition = computed(() => (
+            questionCardTransitionMs.value > 0
+              ? `transform ${questionCardTransitionMs.value}ms ${QUESTION_CARD_TRANSITION_EASING}, opacity ${questionCardTransitionMs.value}ms ease`
+              : "none"
+          ));
+
+          const questionCardDragProgress = computed(() => {
+            const slideDistance = getQuestionCardSlideDistance();
+            if (slideDistance <= 0) return 0;
+            return Math.min(Math.abs(questionCardOffsetX.value) / slideDistance, 1);
+          });
+
+          const questionCardScale = computed(() => 1 - questionCardDragProgress.value * 0.012);
+          const questionCardOpacity = computed(() => 1 - questionCardDragProgress.value * 0.1);
+          const adjacentQuestionCardScale = computed(() => 0.985 + questionCardDragProgress.value * 0.015);
+          const adjacentQuestionCardOpacity = computed(() => Math.min(1, 0.72 + questionCardDragProgress.value * 0.28));
+
+          const questionCardStyle = computed(() => ({
+            transform: `translate3d(${questionCardOffsetX.value}px, 0, 0) scale(${questionCardScale.value})`,
+            opacity: questionCardOpacity.value,
+            transition: questionCardTransition.value,
+          }));
+
+          const adjacentPreviewIndex = computed(() => {
+            if (questionCardOffsetX.value < 0 && currentIndex.value < queue.value.length - 1) {
+              return currentIndex.value + 1;
+            }
+            if (questionCardOffsetX.value > 0 && currentIndex.value > 0) {
+              return currentIndex.value - 1;
+            }
+            return -1;
+          });
+
+          const adjacentQuestionPreview = computed(() =>
+            adjacentPreviewIndex.value >= 0 ? queue.value[adjacentPreviewIndex.value] : null,
+          );
+
+          const adjacentQuestionCardStyle = computed(() => {
+            const slideDistance = getQuestionCardSlideDistance();
+            const direction = adjacentPreviewIndex.value > currentIndex.value ? 1 : -1;
+
+            return {
+              transform: `translate3d(${questionCardOffsetX.value + direction * slideDistance}px, 0, 0) scale(${adjacentQuestionCardScale.value})`,
+              opacity: adjacentQuestionCardOpacity.value,
+              transition: questionCardTransition.value,
+            };
+          });
+
+          const answerSheetSummary = computed(() =>
+            AnswerSheet.getAnswerSheetSummary(queue.value, attempts.value),
+          );
 
           const resultClass = computed(() => {
             if (isMemorizeMode.value) return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50";
@@ -2489,6 +2853,8 @@
             attempts.value = {};
             loadQuestionState();
             status.value = "quiz";
+            scrollQuizPageToTop();
+            pushQuizHistory("quiz");
             isStartingQuiz.value = false; // 成功进入答题后，重置按钮状态
           };
 
@@ -2563,6 +2929,212 @@
             nextTick(() => {
               if (textarea.value) textarea.value.style.height = "auto";
             });
+          };
+
+          const answerSheetButtonClass = (question, index) => {
+            if (index === currentIndex.value) {
+              return "bg-brand-500 text-white border-brand-500 shadow-sm";
+            }
+            if (AnswerSheet.isQuestionAnswered(question, attempts.value[question.id])) {
+              return "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100";
+            }
+            return "bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700";
+          };
+
+          const isPreviewChoice = (question) =>
+            Boolean(question?.type && question.type.includes("选择"));
+
+          const isPreviewJudgment = (question) =>
+            Boolean(question?.type && (question.type.includes("辨析") || question.type.includes("判断")));
+
+          const isPreviewObjective = (question) =>
+            isPreviewChoice(question) || isPreviewJudgment(question);
+
+          const previewOptionVisible = (question, opt) => {
+            if (!isPreviewChoice(question)) return false;
+            if (question.options && question.options[opt]) return true;
+            if (opt !== "E" && opt !== "F") return true;
+            const answer = normalizeText(question.answer);
+            return answer.includes(opt) || answer.includes(opt.toLowerCase());
+          };
+
+          const goToQuestion = (index) => {
+            if (index < 0 || index >= queue.value.length) return;
+            storeCurrentAttempt();
+            currentIndex.value = index;
+            loadQuestionState();
+            showAnswerSheet.value = false;
+          };
+
+          const getTouchPoint = (event) =>
+            event.changedTouches?.[0] || event.touches?.[0] || null;
+
+          const isSwipeNavigationBlocked = (event) =>
+            isKeyboardBlockingOverlayOpen() ||
+            SwipeNavigation.isSwipeIgnoredTarget(event.target);
+
+          const clearQuestionCardAnimationTimer = () => {
+            if (questionCardAnimationTimer) {
+              window.clearTimeout(questionCardAnimationTimer);
+              questionCardAnimationTimer = null;
+            }
+          };
+
+          const resetQuestionCardMotion = () => {
+            clearQuestionCardAnimationTimer();
+            questionCardOffsetX.value = 0;
+            questionCardTransitionMs.value = 0;
+            questionCardViewportMinHeight.value = "";
+            isQuestionCardAnimating.value = false;
+          };
+
+          const updateQuestionCardViewportHeight = () => {
+            if (!adjacentQuestionPreview.value) {
+              questionCardViewportMinHeight.value = "";
+              return;
+            }
+
+            const currentHeight = questionCard.value?.offsetHeight || 0;
+            const adjacentHeight = adjacentQuestionCard.value?.offsetHeight || 0;
+            const maxHeight = Math.max(currentHeight, adjacentHeight);
+
+            questionCardViewportMinHeight.value = maxHeight > 0 ? `${maxHeight}px` : "";
+          };
+
+          const snapQuestionCardBack = () => {
+            clearQuestionCardAnimationTimer();
+            if (Math.abs(questionCardOffsetX.value) < 1) {
+              questionCardTransitionMs.value = 0;
+              questionCardViewportMinHeight.value = "";
+              isQuestionCardAnimating.value = false;
+              return;
+            }
+
+            isQuestionCardAnimating.value = true;
+            questionCardTransitionMs.value = QUESTION_CARD_SNAP_MS;
+            questionCardOffsetX.value = 0;
+            questionCardAnimationTimer = window.setTimeout(() => {
+              questionCardTransitionMs.value = 0;
+              questionCardViewportMinHeight.value = "";
+              isQuestionCardAnimating.value = false;
+              questionCardAnimationTimer = null;
+            }, QUESTION_CARD_SNAP_MS + QUESTION_CARD_SETTLE_BUFFER_MS);
+          };
+
+          const getQuestionCardSlideDistance = () => {
+            const cardWidth = questionCard.value?.offsetWidth || window.innerWidth || 320;
+            return cardWidth + 48;
+          };
+
+          const getQuestionCardDragLimit = () =>
+            Math.max(80, Math.min(getQuestionCardSlideDistance() * 0.85, 420));
+
+          const canNavigateBySwipe = (action) => {
+            if (action === "previous") return currentIndex.value > 0;
+            if (action === "next") return queue.value.length > 0;
+            return false;
+          };
+
+          const animateQuestionCardTransition = (action) => {
+            if (isQuestionCardAnimating.value) return;
+            if (!canNavigateBySwipe(action)) {
+              snapQuestionCardBack();
+              return;
+            }
+
+            const slideDistance = getQuestionCardSlideDistance();
+            const exitOffset = action === "next" ? -slideDistance : slideDistance;
+            const shouldStagePreview = Math.abs(questionCardOffsetX.value) < 1;
+
+            clearQuestionCardAnimationTimer();
+            isQuestionCardAnimating.value = true;
+            if (shouldStagePreview) {
+              questionCardTransitionMs.value = 0;
+              questionCardOffsetX.value = action === "next" ? -0.1 : 0.1;
+            }
+            nextTick(updateQuestionCardViewportHeight);
+
+            questionCardAnimationTimer = window.setTimeout(() => {
+              questionCardTransitionMs.value = QUESTION_CARD_EXIT_MS;
+              questionCardOffsetX.value = exitOffset;
+              nextTick(updateQuestionCardViewportHeight);
+
+              questionCardAnimationTimer = window.setTimeout(() => {
+                if (action === "previous") prevQuestion();
+                if (action === "next") nextQuestion();
+
+                if (status.value !== "quiz") {
+                  resetQuestionCardMotion();
+                  return;
+                }
+
+                resetQuestionCardMotion();
+              }, QUESTION_CARD_EXIT_MS + QUESTION_CARD_SETTLE_BUFFER_MS);
+            }, shouldStagePreview ? QUESTION_CARD_SETTLE_BUFFER_MS : 0);
+          };
+
+          const handleQuestionTouchStart = (event) => {
+            if (isQuestionCardAnimating.value || isSwipeNavigationBlocked(event)) {
+              questionTouchStart = null;
+              return;
+            }
+
+            const touch = getTouchPoint(event);
+            questionTouchStart = touch
+              ? { x: touch.clientX, y: touch.clientY, isDragging: false }
+              : null;
+            questionCardTransitionMs.value = 0;
+          };
+
+          const handleQuestionTouchMove = (event) => {
+            if (!questionTouchStart || isQuestionCardAnimating.value) return;
+            const touch = getTouchPoint(event);
+            if (!touch) return;
+
+            const drag = SwipeNavigation.resolveSwipeDragOffset({
+              startX: questionTouchStart.x,
+              startY: questionTouchStart.y,
+              currentX: touch.clientX,
+              currentY: touch.clientY,
+              isBlocked: isSwipeNavigationBlocked(event),
+              maxOffset: getQuestionCardDragLimit(),
+            });
+
+            if (!drag) return;
+            questionTouchStart.isDragging = true;
+            questionCardTransitionMs.value = 0;
+            questionCardOffsetX.value = drag.offsetX;
+            nextTick(updateQuestionCardViewportHeight);
+          };
+
+          const handleQuestionTouchEnd = (event) => {
+            if (!questionTouchStart) return;
+            const touch = getTouchPoint(event);
+            if (!touch) {
+              questionTouchStart = null;
+              snapQuestionCardBack();
+              return;
+            }
+
+            const action = SwipeNavigation.resolveSwipeAction({
+              startX: questionTouchStart.x,
+              startY: questionTouchStart.y,
+              endX: touch.clientX,
+              endY: touch.clientY,
+              isBlocked: isSwipeNavigationBlocked(event),
+            });
+            questionTouchStart = null;
+
+            if (action) {
+              animateQuestionCardTransition(action);
+            } else {
+              snapQuestionCardBack();
+            }
+          };
+
+          const handleQuestionTouchCancel = () => {
+            questionTouchStart = null;
+            snapQuestionCardBack();
           };
 
           const autoResize = (e) => {
@@ -2681,6 +3253,7 @@
             showAnnouncement.value ||
             showUpdateLogs.value ||
             showExportModal.value ||
+            showAnswerSheet.value ||
             showAuth.value ||
             showAccountModal.value ||
             showUserMenu.value;
@@ -3263,6 +3836,8 @@
               loadQuestionState();
             } else {
               status.value = "result";
+              scrollQuizPageToTop();
+              pushQuizHistory("result");
             }
           };
 
@@ -3273,6 +3848,9 @@
               loadQuestionState();
             }
           };
+
+          const prevQuestionWithAnimation = () => animateQuestionCardTransition("previous");
+          const nextQuestionWithAnimation = () => animateQuestionCardTransition("next");
 
           return {
             status,
@@ -3318,10 +3896,32 @@
             selectAllChapters,
             startQuiz,
             isStartingQuiz,
+            goToSetup,
             nextQuestion,
             prevQuestion,
+            nextQuestionWithAnimation,
+            prevQuestionWithAnimation,
             restartQuiz,
             showErrorCount,
+            showAnswerSheet,
+            answerSheetSummary,
+            answerSheetButtonClass,
+            goToQuestion,
+            questionCardViewport,
+            questionCardViewportStyle,
+            questionCard,
+            adjacentQuestionCard,
+            questionCardStyle,
+            adjacentQuestionPreview,
+            adjacentQuestionCardStyle,
+            isPreviewChoice,
+            isPreviewJudgment,
+            isPreviewObjective,
+            previewOptionVisible,
+            handleQuestionTouchStart,
+            handleQuestionTouchMove,
+            handleQuestionTouchEnd,
+            handleQuestionTouchCancel,
             resultClass,
             resultTitle,
             autoResize,

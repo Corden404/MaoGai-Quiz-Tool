@@ -25,10 +25,16 @@
   const resolveQuizKeyboardAction = (context = {}) => {
     if (
       !context.isQuizActive ||
-      context.isMemorizeMode ||
       context.isModalOpen ||
       isEditableTarget(context.target)
     ) {
+      return null;
+    }
+
+    if (context.key === "ArrowRight") return { type: "next" };
+    if (context.key === "ArrowLeft") return { type: "previous" };
+
+    if (context.isMemorizeMode) {
       return null;
     }
 
@@ -41,12 +47,6 @@
       return context.isObjective && context.selectionCount > 0
         ? { type: "submit" }
         : null;
-    }
-
-    if (answerRevealed) {
-      if (context.key === "ArrowRight") return { type: "next" };
-      if (context.key === "ArrowLeft") return { type: "previous" };
-      return null;
     }
 
     const option = String(context.key || "").toUpperCase();

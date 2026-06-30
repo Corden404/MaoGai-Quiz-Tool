@@ -105,17 +105,19 @@ test("moves to the next question with Enter after an answer is revealed", () => 
   );
 });
 
-test("moves between questions with arrow keys only after an answer is revealed", () => {
+test("moves between questions with arrow keys like navigation buttons", () => {
   assert.deepEqual(
-    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowRight", hasSubmitted: true }),
+    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowRight" }),
     { type: "next" },
   );
   assert.deepEqual(
-    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowLeft", hasSubmitted: true }),
+    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowLeft" }),
     { type: "previous" },
   );
-  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "ArrowRight" }), null);
-  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "ArrowLeft" }), null);
+  assert.deepEqual(
+    resolveQuizKeyboardAction({ ...baseContext, key: "ArrowRight", isMemorizeMode: true }),
+    { type: "next" },
+  );
 });
 
 test("does not handle shortcuts in blocked interface states", () => {
@@ -140,7 +142,7 @@ test("does not map A-D for non-choice questions", () => {
 const html = fs.readFileSync("index.html", "utf8");
 
 test("loads and lifecycle-manages the quiz keyboard listener", () => {
-  assert.match(html, /<script src="src\/keyboard-shortcuts\.js"><\/script>/);
+  assert.match(html, /<script src="src\/keyboard-shortcuts\.js\?v=arrow-navigation"><\/script>/);
   assert.match(
     html,
     /const \{ createApp, ref, computed, onMounted, onUnmounted, nextTick, watch \} = Vue;/,
