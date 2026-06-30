@@ -316,6 +316,8 @@
       }
 
       .quiz-bottom-actions {
+        position: static !important;
+        padding: 0 !important;
         background: transparent !important;
         border-top-color: transparent !important;
         box-shadow: none !important;
@@ -1792,6 +1794,21 @@
           // 统一管理的公告列表 (按时间倒序排列)
           const announcementsList = [
             {
+              version: 6,
+              type: "update",
+              title: "📱 刷题页体验优化",
+              date: "2026-06-30",
+              content: `
+              <p class="text-slate-600 dark:text-slate-300 mb-3">本次更新优化了刷题页的移动端和桌面端使用体验：</p>
+              <div class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/50 mb-3">
+                <p>新增答题卡：可查看当前练习的已做/未做进度，并快速跳转到指定题目。</p>
+              </div>
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                <p>新增滑动切题：移动端可左右滑动切换上一题/下一题，纵向滚动和文字输入不受影响。</p>
+              </div>
+            `
+            },
+            {
               version: 5,
               type: "update",
               title: "⌨️ 键盘答题更方便了",
@@ -2448,6 +2465,11 @@
           const getQuizHistoryStatus = (state) =>
             state && state[QUIZ_HISTORY_STATE_KEY] ? state[QUIZ_HISTORY_STATE_KEY] : "setup";
 
+          const scrollQuizPageToTop = () => {
+            if (typeof window === "undefined" || typeof window.scrollTo !== "function") return;
+            nextTick(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+          };
+
           const replaceQuizHistory = (nextStatus, depth = quizHistoryDepth) => {
             if (!canUseQuizHistory()) return;
             quizHistoryDepth = depth;
@@ -2830,6 +2852,7 @@
             attempts.value = {};
             loadQuestionState();
             status.value = "quiz";
+            scrollQuizPageToTop();
             pushQuizHistory("quiz");
             isStartingQuiz.value = false; // 成功进入答题后，重置按钮状态
           };
@@ -3663,6 +3686,7 @@
               loadQuestionState();
             } else {
               status.value = "result";
+              scrollQuizPageToTop();
               pushQuizHistory("result");
             }
           };

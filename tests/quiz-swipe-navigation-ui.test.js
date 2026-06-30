@@ -125,10 +125,12 @@ test("bottom navigation is persistent on mobile and lightweight on desktop", () 
   const quizContent = html.match(/<!-- 题目卡片 -->[\s\S]*?<!-- 🚀 固定底部操作栏/);
   const bottomBar = html.match(/<!-- 🚀 固定底部操作栏[\s\S]*?<!-- 3\. 结算页面/);
   const desktopNavStyle = html.match(/\.desktop-quiz-nav\s*\{([\s\S]*?)\n    \}/);
+  const desktopMediaBottomActions = html.match(/@media \(min-width: 640px\) \{[\s\S]*?\.quiz-bottom-actions\s*\{([\s\S]*?)\n      \}/);
 
   assert.ok(quizContent, "quiz content before bottom action bar should exist");
   assert.ok(bottomBar, "bottom action bar should exist");
   assert.ok(desktopNavStyle, "desktop nav style should exist");
+  assert.ok(desktopMediaBottomActions, "desktop bottom action style should exist");
   assert.match(bottomBar[0], /class="quiz-bottom-actions /);
   assert.match(bottomBar[0], /class="mobile-quiz-nav quiz-nav-actions flex flex-row gap-3"/);
   assert.doesNotMatch(bottomBar[0], /desktop-quiz-nav/);
@@ -149,6 +151,8 @@ test("bottom navigation is persistent on mobile and lightweight on desktop", () 
   assert.match(html, /@media \(min-width: 640px\) \{[\s\S]*\.mobile-quiz-nav\s*\{[\s\S]*display: none;/);
   assert.match(html, /@media \(min-width: 640px\) \{[\s\S]*\.desktop-quiz-nav\s*\{[\s\S]*display: flex;/);
   assert.match(html, /@media \(min-width: 640px\) \{[\s\S]*\.quiz-bottom-actions\s*\{[\s\S]*background: transparent !important;[\s\S]*box-shadow: none !important;/);
+  assert.match(desktopMediaBottomActions[1], /position: static !important;/);
+  assert.match(desktopMediaBottomActions[1], /padding: 0 !important;/);
   assert.doesNotMatch(html, /const shouldShowDesktopNavigation = computed\(\(\) =>/);
   assert.match(quizContent[0], /@click="prevQuestion"/);
   assert.match(quizContent[0], /@click="nextQuestion"/);
