@@ -74,6 +74,12 @@ test("ignores unavailable and unrelated letter keys", () => {
   assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "E" }), null);
 });
 
+test("ignores browser and system modifier shortcuts", () => {
+  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "c", ctrlKey: true }), null);
+  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "c", metaKey: true }), null);
+  assert.equal(resolveQuizKeyboardAction({ ...baseContext, key: "ArrowLeft", altKey: true }), null);
+});
+
 test("submits with Enter only when an objective answer exists", () => {
   assert.deepEqual(resolveQuizKeyboardAction({ ...baseContext, key: "Enter" }), {
     type: "submit",
@@ -161,6 +167,9 @@ test("delegates resolved keyboard actions to existing answer functions", () => {
   assert.match(html, /submitAnswer\(\)/);
   assert.match(html, /isJudgment:\s*isJudgment\.value/);
   assert.match(html, /subjectiveStatus:\s*subjectiveStatus\.value/);
+  assert.match(html, /ctrlKey:\s*event\.ctrlKey/);
+  assert.match(html, /metaKey:\s*event\.metaKey/);
+  assert.match(html, /altKey:\s*event\.altKey/);
   assert.match(html, /else if \(action\.type === "previous"\)\s*\{\s*prevQuestion\(\);/);
   assert.match(html, /else if \(action\.type === "next"\)\s*\{\s*nextQuestion\(\);/);
   assert.match(html, /event\.preventDefault\(\)/);

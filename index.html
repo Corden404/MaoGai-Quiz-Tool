@@ -3272,6 +3272,9 @@
               isObjective: isObjective.value,
               availableOptions: KeyboardShortcuts.getAvailableShortcutOptions(currentQuestion.value),
               selectionCount: userSelection.value.length,
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              altKey: event.altKey,
             });
 
             if (!action) return;

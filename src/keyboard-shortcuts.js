@@ -26,6 +26,9 @@
     if (
       !context.isQuizActive ||
       context.isModalOpen ||
+      context.ctrlKey ||
+      context.metaKey ||
+      context.altKey ||
       isEditableTarget(context.target)
     ) {
       return null;
