@@ -3,10 +3,12 @@ const test = require("node:test");
 
 const {
   MAX_NOTE_LENGTH,
+  applyQuestionProgress,
   canSyncProgress,
   countCodePoints,
   createEmptyProgress,
   migrateLegacyProgress,
+  normalizeProgress,
   progressStorageKey,
   readProgress,
   removeProgress,
@@ -51,7 +53,7 @@ test("uses separate storage keys for anonymous and signed-in progress", () => {
 
 test("migrates the legacy cache only to anonymous progress", () => {
   const legacyProgress = {
-    tags: { q1: { isStarred: true } },
+    tags: { q1: { tag_star: true } },
     error_counts: {},
     notes: {},
     reported_questions: {},
@@ -126,4 +128,35 @@ test("rejects delayed sync work after the active account changes", () => {
   assert.equal(canSyncProgress("user-a", "user-b"), false);
   assert.equal(canSyncProgress("user-a", null), false);
   assert.equal(canSyncProgress("", "user-a"), false);
+});
+
+test("normalizes nested progress without retaining unknown keys, types or aliases", () => {
+  const raw = JSON.parse('{"tags":{"q1":{"tag_star":true,"tag_hard":"yes","answer":"B","__proto__":{"tag_key":true}},"unknown":{"tag_star":true},"constructor":{"tag_star":true}},"error_counts":{"q1":3,"q2":-1,"q3":1.5,"q4":9007199254740992},"notes":{"q1":"safe","q2":[]},"reported_questions":{"q1":true,"q2":"true"}}');
+  raw.notes.q3 = "😀".repeat(2001);
+  const clean = normalizeProgress(raw, new Set(["q1", "q2", "q3", "q4", "constructor"]));
+  assert.deepEqual(clean, {
+    tags: { q1: { tag_star: true } }, error_counts: { q1: 3 },
+    notes: { q1: "safe" }, reported_questions: { q1: true },
+  });
+  raw.tags.q1.tag_star = false;
+  assert.equal(clean.tags.q1.tag_star, true);
+});
+
+test("local and cloud payloads cannot alter question identity, content or prototypes across accounts", () => {
+  const raw = JSON.parse('{"tags":{"q1":{"id":"q2","answer":"B","question_content":"injected","options":{"A":"injected"},"constructor":{},"__proto__":{"polluted":true},"tag_star":true}},"notes":{"q1":"private"}}');
+  const storage = new MemoryStorage({ [progressStorageKey("user-a")]: JSON.stringify(raw) });
+  for (const progress of [raw, readProgress(storage, "user-a")]) {
+    const question = { id: "q1", answer: "A", question_content: "original", options: { A: "safe" } };
+    const original = structuredClone(question);
+    applyQuestionProgress([question], progress);
+    assert.equal(question.tag_star, true);
+    assert.equal(question.note, "private");
+    assert.equal(question.id, original.id);
+    assert.equal(question.answer, original.answer);
+    assert.equal(question.question_content, original.question_content);
+    assert.deepEqual(question.options, original.options);
+    assert.equal(Object.getPrototypeOf(question), Object.prototype);
+    applyQuestionProgress([question], readProgress(storage, "user-b"));
+    assert.deepEqual(question, original);
+  }
 });

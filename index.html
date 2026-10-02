@@ -1743,10 +1743,12 @@
       const { createApp, ref, computed, onMounted, onUnmounted, nextTick, watch } = Vue;
       const {
         MAX_NOTE_LENGTH,
+        applyQuestionProgress,
         canSyncProgress,
         countCodePoints,
         createEmptyProgress,
         migrateLegacyProgress,
+        normalizeProgress,
         readProgress,
         removeProgress,
         validateNoteContent,
@@ -1785,6 +1787,10 @@
 
       createApp({
         setup() {
+          const knownQuestionIds = new Set([
+            ...(window.QUESTIONS_DATA || []),
+            ...(window.MAYUAN_QUESTIONS_DATA || []),
+          ].map((question) => question.id));
           // --- 全局体验状态 ---
           const isGlobalLoading = ref(true);
           const isDark = ref(false);
@@ -2004,27 +2010,8 @@
 
           // --- 2. 初始化与数据合并 ---
           const mergeProgressToQuestions = () => {
-            if (!allQuestions.value.length) return;
-
-            // 每次合并前，先清理一遍遗留数据（防止切换账号时看到上个账号的数据）
-            allQuestions.value.forEach((q) => {
-              delete q.error_count;
-              delete q.note;
-              delete q.tag_star;
-              delete q.tag_key;
-              delete q.tag_hard;
-
-              // 重新注入当前 progress 的数据
-              if (userProgress.value.tags && userProgress.value.tags[q.id]) {
-                Object.assign(q, userProgress.value.tags[q.id]);
-              }
-              if (userProgress.value.error_counts && userProgress.value.error_counts[q.id] !== undefined) {
-                q.error_count = userProgress.value.error_counts[q.id];
-              }
-              if (userProgress.value.notes && userProgress.value.notes[q.id] !== undefined) {
-                q.note = userProgress.value.notes[q.id];
-              }
-            });
+            userProgress.value = normalizeProgress(userProgress.value, knownQuestionIds);
+            applyQuestionProgress(allQuestions.value, userProgress.value);
           };
 
           // --- 0. 账号与认证状态 ---
@@ -2054,6 +2041,12 @@
               isGlobalLoading.value = false;
               return;
             }
+
+            // Keep the loaded question banks pristine across subjects and accounts.
+            data = data.map((question) => ({
+              ...question,
+              ...(question.options ? { options: { ...question.options } } : {}),
+            }));
 
             // 统一归一化特殊题型
             data.forEach(q => {
@@ -2169,7 +2162,7 @@
               if (transitionVersion !== authTransitionVersion || currentUser.value?.id !== targetUserId) return;
 
               if (data?.progress_data) {
-                userProgress.value = data.progress_data;
+                userProgress.value = normalizeProgress(data.progress_data, knownQuestionIds);
                 writeProgress(localStorage, targetUserId, userProgress.value);
                 mergeProgressToQuestions();
                 resetIdentityBoundView();

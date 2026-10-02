@@ -58,3 +58,10 @@ test("account deletion requires a password and invokes the protected Edge Functi
   assert.match(html, /body:\s*\{\s*password:\s*deletePassword\.value\s*\}/);
   assert.doesNotMatch(html, /\.rpc\(['"]delete_user['"]/);
 });
+
+test("normalizes cloud progress before use and restricts all question merges", () => {
+  assert.match(html, /userProgress\.value = normalizeProgress\(data\.progress_data, knownQuestionIds\)/);
+  assert.match(html, /applyQuestionProgress\(allQuestions\.value, userProgress\.value\)/);
+  assert.doesNotMatch(html, /Object\.assign\(q, userProgress/);
+  assert.match(html, /data = data\.map\(\(question\) => \(\{/);
+});
