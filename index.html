@@ -1539,7 +1539,7 @@
             <!-- 私人笔记区 -->
             <div v-if="noteTab === 'private'"
               class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl p-3">
-              <textarea v-model="noteContent"
+              <textarea v-model="noteContent" :disabled="isSavingNote"
                 class="w-full bg-transparent outline-none text-slate-700 dark:text-slate-300 text-sm min-h-[80px] resize-y"
                 placeholder="这里可以记录私人笔记，或者通过AI生成的解析..."></textarea>
               <div class="text-right text-[11px] mt-1"
@@ -1551,14 +1551,19 @@
                 <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
                   <input type="checkbox" v-model="shareToPublic"
                     class="rounded text-indigo-500 focus:ring-indigo-500 dark:bg-slate-700 dark:border-slate-600"
-                    :disabled="!currentUser" />
+                    :disabled="!currentUser || !sharingStateReady || isSavingNote" />
                   <span :class="!currentUser ? 'opacity-50' : ''">分享到解题广场 (需登录)</span>
                 </label>
-                <button @click="saveNote"
+                <button @click="saveNote" :disabled="!sharingStateReady || isSavingNote"
                   class="bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg transition shadow font-bold">
                   {{ saveBtnText }}
                 </button>
               </div>
+              <p v-if="currentUser" class="text-xs text-slate-500 mt-2">
+                <template v-if="sharingStateReady">取消勾选并保存，可撤回已分享到解题广场的笔记。</template>
+                <template v-else-if="isLoadingSharingState">正在读取分享状态…</template>
+                <button v-else @click="loadNoteSharingState" class="underline">分享状态读取失败，点击重试</button>
+              </p>
             </div>
 
             <!-- 解题广场区 -->
@@ -3708,10 +3713,57 @@
             }
           };
 
+          const noteSharingState = ref(null);
+          const pendingSharingLoad = ref(null);
+          const pendingNoteSave = ref(null);
+          let noteSharingRequestId = 0;
+          const isCurrentNoteRequest = (request) => Boolean(request) &&
+            request.authVersion === authTransitionVersion &&
+            request.userId === (currentUser.value?.id || null) &&
+            request.questionId === currentQuestion.value.id;
+          const sharingStateReady = computed(() => !currentUser.value || isCurrentNoteRequest(noteSharingState.value));
+          const isLoadingSharingState = computed(() => isCurrentNoteRequest(pendingSharingLoad.value));
+          const isSavingNote = computed(() => isCurrentNoteRequest(pendingNoteSave.value));
+          const createNoteRequest = () => ({
+            id: ++noteSharingRequestId,
+            authVersion: authTransitionVersion,
+            userId: currentUser.value?.id || null,
+            questionId: currentQuestion.value.id,
+          });
+
+          const loadNoteSharingState = async () => {
+            if (isAuthTransitioning.value || !currentUser.value || !currentQuestion.value.id || !supabaseClient ||
+                sharingStateReady.value || isLoadingSharingState.value) return;
+            const request = createNoteRequest();
+            pendingSharingLoad.value = request;
+            try {
+              const { data, error } = await supabaseClient.rpc('get_public_notes', { p_question_id: request.questionId });
+              if (!isCurrentNoteRequest(request) || pendingSharingLoad.value?.id !== request.id) return;
+              if (error) throw error;
+              const isPublic = (data || []).some(note => note.is_mine);
+              noteSharingState.value = { ...request, isPublic };
+              shareToPublic.value = isPublic;
+            } catch (error) {
+              if (isCurrentNoteRequest(request)) showToast("分享状态读取失败，请重试后保存。", "warning");
+            } finally {
+              if (pendingSharingLoad.value?.id === request.id) pendingSharingLoad.value = null;
+            }
+          };
+
+          watch([showNote, () => currentQuestion.value.id, () => currentUser.value?.id, isAuthTransitioning], () => {
+            if (showNote.value) loadNoteSharingState();
+          });
+
           const saveNote = async () => {
+            if (isAuthTransitioning.value) return;
             const q = currentQuestion.value;
             if (!q?.id) {
               saveBtnText.value = "保存失败";
+              return;
+            }
+            if (isSavingNote.value) return;
+            if (!sharingStateReady.value) {
+              showToast("请先读取当前分享状态，再保存笔记。", "warning");
               return;
             }
 
@@ -3729,28 +3781,45 @@
             }
 
             saveBtnText.value = "保存中...";
+            const request = createNoteRequest();
+            const content = noteContent.value;
+            const desiredSharing = shareToPublic.value;
             q.note = noteContent.value;
             userProgress.value.notes[q.id] = noteContent.value;
             saveProgress();
+            pendingNoteSave.value = request;
 
-            if (shareToPublic.value && currentUser.value && supabaseClient) {
+            if (currentUser.value && supabaseClient) {
               try {
-                const { error } = await supabaseClient.rpc('upsert_public_note', {
-                  p_question_id: q.id,
-                  p_content: noteContent.value
+                const { data, error } = await supabaseClient.rpc('set_public_note_sharing', {
+                  p_question_id: request.questionId,
+                  p_content: content,
+                  p_is_public: desiredSharing,
+                  p_expected_user_id: request.userId,
                 });
+                if (!isCurrentNoteRequest(request)) return;
                 if (error) throw error;
+                if (typeof data !== "boolean") throw new Error("Invalid sharing response");
+                noteSharingState.value = { ...request, isPublic: data };
+                shareToPublic.value = data;
+                // Refresh the public list on the next visit after either transition.
+                publicNotes.value = [];
               } catch (error) {
-                console.error("发布公开笔记失败:", error);
+                if (!isCurrentNoteRequest(request)) return;
+                console.error("更新公开分享状态失败:", error);
+                noteSharingState.value = null;
                 saveBtnText.value = "私人笔记已保存";
-                showToast("私人笔记已保存，但公开分享失败。", "warning");
+                showToast("私人笔记已保存，但分享状态未确认，请重试。", "warning");
+                await loadNoteSharingState();
                 return;
+              } finally {
+                if (pendingNoteSave.value?.id === request.id) pendingNoteSave.value = null;
               }
             }
-
+            if (pendingNoteSave.value?.id === request.id) pendingNoteSave.value = null;
             saveBtnText.value = "✅ 已保存";
             setTimeout(() => {
-              saveBtnText.value = "保存笔记";
+              if (isCurrentNoteRequest(request)) saveBtnText.value = "保存笔记";
             }, 2000);
           };
 
@@ -3936,6 +4005,10 @@
             noteCharacterCount,
             MAX_NOTE_LENGTH,
             saveNote,
+            sharingStateReady,
+            isLoadingSharingState,
+            isSavingNote,
+            loadNoteSharingState,
             saveBtnText,
             toggleTag,
             noteTab,

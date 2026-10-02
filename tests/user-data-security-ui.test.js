@@ -24,7 +24,7 @@ test("loads the user data security helper before the application", () => {
 test("public notes use RPCs and never read the underlying table directly", () => {
   assert.doesNotMatch(html, /\.from\(['"]public_notes['"]\)/);
   assert.match(html, /\.rpc\(['"]get_public_notes['"]/);
-  assert.match(html, /\.rpc\(['"]upsert_public_note['"]/);
+  assert.match(html, /\.rpc\(['"]set_public_note_sharing['"]/);
   assert.match(html, /\.rpc\(['"]toggle_public_note_like['"]/);
 });
 
