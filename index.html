@@ -8,7 +8,7 @@
   <!-- 自定义图标 -->
   <link rel="icon" href="icon.png" type="image/png">
   <!-- 引入 driver.js 导览库 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css" integrity="sha384-eyrYgcjChmzD338JTHFZssgJHOqqOZbajet8yZpCw8ESroLDi28BarMEKCImNGHC" crossorigin="anonymous" />
   <!-- 引入构建后的静态 CSS (CF 构建后生成) -->
   <link rel="stylesheet" href="style.css?v=question-tags-four-column">
   <script>
@@ -47,12 +47,12 @@
     };
   </script>
   <!-- 引入 Vue 3 生产版 (极致压缩，提升加载速度) -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.43/dist/vue.global.prod.js" integrity="sha384-EAm39cvdifYiZjQQxCxStLasDodQMYokBrN5XPuJ7aC/JsQ4vyEUCy/+6hXpcBOW" crossorigin="anonymous" defer></script>
   <!-- 引入 driver.js 核心逻辑 -->
-  <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" integrity="sha384-BhR06AMz62Xn0o53z8itVS1vw4JslNckRFgOTa6/Dob0Agdmbbh8Dr9sDO2h18TO" crossorigin="anonymous" defer></script>
   <!-- 引入配置文件与 Supabase SDK -->
   <script src="./config.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="./questions.js" defer></script>
   <script src="./mayuan_questions.js" defer></script>
   <script src="./src/answer-sheet.js" defer></script>
@@ -3384,6 +3384,7 @@
           };
 
           const HTML2PDF_SCRIPT_SRC = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
+          const HTML2PDF_SCRIPT_INTEGRITY = "sha384-Yv5O+t3uE3hunW8uyrbpPW3iw6/5/Y7HitWJBLgqfMoA36NogMmy+8wWZMpn3HWc";
           const PDF_EXPORT_CHUNK_SIZE = 18;
           let html2pdfLoadPromise = null;
 
@@ -3394,6 +3395,8 @@
             html2pdfLoadPromise = new Promise((resolve) => {
               const script = document.createElement("script");
               script.src = HTML2PDF_SCRIPT_SRC;
+              script.integrity = HTML2PDF_SCRIPT_INTEGRITY;
+              script.crossOrigin = "anonymous";
               script.async = true;
               script.onload = () => resolve(typeof window.html2pdf === "function");
               script.onerror = () => {
