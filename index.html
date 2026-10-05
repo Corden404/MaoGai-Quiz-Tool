@@ -1075,7 +1075,7 @@
     </div>
 
     <!-- 1. 设置页面 (Setup Page - Redesigned) -->
-    <div v-cloak v-if="status === 'setup'">
+    <div v-cloak v-if="status === 'setup'" :inert="isAuthTransitioning">
       <!-- 科目切换 Tab -->
       <div class="flex justify-center mb-6">
         <div class="bg-slate-200/50 dark:bg-surface-800 p-1 rounded-2xl flex shadow-inner overflow-x-auto w-full sm:w-auto custom-scrollbar">
@@ -1273,7 +1273,7 @@
     </div>
 
     <!-- 2. 刷题页面 (Quiz Page) -->
-    <div v-cloak v-if="status === 'quiz'" class="relative quiz-page-shell max-w-3xl mx-auto">
+    <div v-cloak v-if="status === 'quiz'" class="relative quiz-page-shell max-w-3xl mx-auto" :inert="isAuthTransitioning">
       <!-- 顶部栏：进度与退出 -->
       <div class="flex justify-between items-center mb-4">
         <button @click="goToSetup"
@@ -2125,10 +2125,22 @@
               .some((key) => Object.keys(progress?.[key] || {}).length > 0);
 
           const resetIdentityBoundView = () => {
+            status.value = "setup";
+            queue.value = [];
+            currentIndex.value = 0;
             attempts.value = {};
-            noteContent.value = currentQuestion.value.note || "";
-            shareToPublic.value = false;
-            publicNotes.value = [];
+            stats.value = { correct: 0, wrong: 0 };
+            isMemorizeMode.value = false;
+            isStartingQuiz.value = false;
+            showAnswerSheet.value = false;
+            showExportModal.value = false;
+            isLoadingPublicNotes.value = false;
+            questionTouchStart = null;
+            resetQuestionCardMotion();
+            resetQuestionState();
+            quizHistoryEpoch++;
+            quizHistoryDepth = 0;
+            replaceQuizHistory("setup", 0);
           };
 
           const applyAuthSession = async (session) => {
@@ -2204,6 +2216,7 @@
                   currentUser.value = nextUser;
                   return;
                 }
+                isAuthTransitioning.value = true;
                 setTimeout(() => {
                   applyAuthSession(session).catch((error) => {
                     console.error("认证状态切换失败:", error);
@@ -2444,6 +2457,7 @@
           let syncTargetUserId = null;
           const QUIZ_HISTORY_STATE_KEY = "maogaiQuizStatus";
           let quizHistoryDepth = 0;
+          let quizHistoryEpoch = 0;
 
           const canUseQuizHistory = () =>
             typeof window !== "undefined" &&
@@ -2457,7 +2471,8 @@
           };
 
           const getQuizHistoryStatus = (state) =>
-            state && state[QUIZ_HISTORY_STATE_KEY] ? state[QUIZ_HISTORY_STATE_KEY] : "setup";
+            state && state.identityEpoch === quizHistoryEpoch && state[QUIZ_HISTORY_STATE_KEY]
+              ? state[QUIZ_HISTORY_STATE_KEY] : "setup";
 
           const scrollQuizPageToTop = () => {
             if (typeof window === "undefined" || typeof window.scrollTo !== "function") return;
@@ -2469,6 +2484,7 @@
             quizHistoryDepth = depth;
             window.history.replaceState({
               [QUIZ_HISTORY_STATE_KEY]: nextStatus,
+              identityEpoch: quizHistoryEpoch,
               depth,
             }, "", getQuizHistoryUrl(nextStatus));
           };
@@ -2480,6 +2496,7 @@
             quizHistoryDepth = nextDepth;
             window.history.pushState({
               [QUIZ_HISTORY_STATE_KEY]: nextStatus,
+              identityEpoch: quizHistoryEpoch,
               depth: nextDepth,
             }, "", getQuizHistoryUrl(nextStatus));
           };
@@ -2494,6 +2511,11 @@
           };
 
           const handleQuizHistoryPop = (event) => {
+            if (event.state?.identityEpoch !== quizHistoryEpoch || isAuthTransitioning.value) {
+              status.value = "setup";
+              replaceQuizHistory("setup", 0);
+              return;
+            }
             quizHistoryDepth = Number(event.state?.depth || 0);
             applyQuizHistoryStatus(getQuizHistoryStatus(event.state));
           };
@@ -2771,6 +2793,8 @@
           const isStartingQuiz = ref(false);
 
           const startQuiz = async (memorize = false) => {
+            if (isAuthTransitioning.value) return;
+            const requestVersion = authTransitionVersion;
             isMemorizeMode.value = memorize; // 设置当前模式
             const safeMistakeMinCount = Math.max(1, Number(mistakeMinCount.value || 1));
             let globalMistakeIds = new Set();
@@ -2792,6 +2816,7 @@
                   p_limit: 50,
                   p_min_error_rate: safeGlobalMinRate
                 });
+                if (requestVersion !== authTransitionVersion || isAuthTransitioning.value) return;
 
                 if (error) throw error;
                 if (!data || data.length === 0) {
@@ -2810,6 +2835,7 @@
                 }
 
               } catch (err) {
+                if (requestVersion !== authTransitionVersion) return;
                 console.error("获取全网易错题失败:", err);
                 showToast("获取全网易错题失败，请检查网络或配置。", "error");
                 isStartingQuiz.value = false;
@@ -2952,6 +2978,7 @@
           };
 
           const goToQuestion = (index) => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             if (index < 0 || index >= queue.value.length) return;
             storeCurrentAttempt();
             currentIndex.value = index;
@@ -3029,6 +3056,7 @@
           };
 
           const animateQuestionCardTransition = (action) => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             if (isQuestionCardAnimating.value) return;
             if (!canNavigateBySwipe(action)) {
               snapQuestionCardBack();
@@ -3136,6 +3164,7 @@
           };
 
           const selectOption = (opt) => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             if (hasSubmitted.value || isMemorizeMode.value) return; // ✅ 背题模式下禁止点击选项
             if (isMultiSelect.value) {
               const idx = userSelection.value.indexOf(opt);
@@ -3188,6 +3217,7 @@
 
           // 修改 submitAnswer 处理辨析题的判分逻辑
           const submitAnswer = () => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             if (isObjective.value && userSelection.value.length === 0) return;
             const qid = currentQuestion.value.id;
             const prev = qid ? attempts.value[qid] : null;
@@ -3288,6 +3318,7 @@
           onUnmounted(() => window.removeEventListener("keydown", handleQuizKeydown));
 
           const giveUpAndShowAnswer = () => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             if (hasSubmitted.value) return;
             if (currentQuestion.value.id) {
               stats.value.wrong++;
@@ -3301,6 +3332,7 @@
           };
 
           const markSubjective = (correct) => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             if (subjectiveStatus.value !== "pending" || isMemorizeMode.value) return;
 
             const qid = currentQuestion.value.id;
@@ -3333,6 +3365,7 @@
           };
 
           const toggleTag = (tagField) => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             const q = currentQuestion.value;
             if (!q || !q.id) return;
             if (!["tag_star", "tag_key", "tag_hard"].includes(tagField)) return;
@@ -3672,6 +3705,8 @@
 
           // --- 【新增：全网易错题上报函数】 ---
           const reportToGlobalStats = async (questionId, isCorrect) => {
+            if (isAuthTransitioning.value || !supabaseClient) return;
+            const requestVersion = authTransitionVersion;
             // 1. 如果没登录，或者这道题已经在本地小本本上记过了，就直接跳过（前端防抖）
             if (!currentUser.value || userProgress.value.reported_questions[questionId]) {
               console.log(`[全网易错] 题目 ${questionId} 已被拦截上报。原因: ${!currentUser.value ? '未登录' : '本地已打卡'}`);
@@ -3686,6 +3721,7 @@
                 p_question_id: questionId,
                 p_is_correct: isCorrect
               });
+              if (requestVersion !== authTransitionVersion) return;
 
               if (error) {
                 console.error("[全网易错] 后端 RPC 抛出错误:", error);
@@ -3702,6 +3738,7 @@
           };
 
           const saveNote = async () => {
+            if (isAuthTransitioning.value) return;
             const q = currentQuestion.value;
             if (!q?.id) {
               saveBtnText.value = "保存失败";
@@ -3750,6 +3787,8 @@
           const showAllNotes = ref(false);
 
           const fetchPublicNotes = async () => {
+            if (isAuthTransitioning.value) return;
+            const requestVersion = authTransitionVersion;
             const q = currentQuestion.value;
             if (!q || !q.id || !supabaseClient) return;
             if (!currentUser.value) {
@@ -3762,6 +3801,7 @@
               const { data, error } = await supabaseClient.rpc('get_public_notes', {
                 p_question_id: q.id
               });
+              if (requestVersion !== authTransitionVersion || currentQuestion.value.id !== q.id) return;
               if (error) throw error;
 
               publicNotes.value = (data || []).map(note => ({
@@ -3777,10 +3817,13 @@
 
               shareToPublic.value = publicNotes.value.some(note => note.isMine);
             } catch (err) {
+              if (requestVersion !== authTransitionVersion || currentQuestion.value.id !== q.id) return;
               console.error("加载公开笔记失败:", err);
               showToast("公开笔记加载失败，请稍后重试。", "error");
             } finally {
-              isLoadingPublicNotes.value = false;
+              if (requestVersion === authTransitionVersion && currentQuestion.value.id === q.id) {
+                isLoadingPublicNotes.value = false;
+              }
             }
           };
 
@@ -3826,6 +3869,7 @@
           });
 
           const nextQuestion = () => {
+            if (isAuthTransitioning.value || status.value !== "quiz" || !queue.value.length) return;
             storeCurrentAttempt();
             if (currentIndex.value < queue.value.length - 1) {
               currentIndex.value++;
@@ -3838,6 +3882,7 @@
           };
 
           const prevQuestion = () => {
+            if (isAuthTransitioning.value || status.value !== "quiz") return;
             storeCurrentAttempt();
             if (currentIndex.value > 0) {
               currentIndex.value--;
@@ -3972,6 +4017,7 @@
 
             // 暴露认证相关的变量和方法给模板
             currentUser,
+            isAuthTransitioning,
             showAuth,
             authMode,
             authForm,
