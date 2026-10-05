@@ -12,7 +12,7 @@ test("loads the shared question tag module", () => {
 test("cache-busts the generated stylesheet after layout changes", () => {
   assert.match(
     html,
-    /<link rel="stylesheet" href="style\.css\?v=question-tags-four-column">/,
+    /<link rel="stylesheet" href="style\.css\?v=byok-ai-assistant">/,
   );
 });
 
